@@ -61,6 +61,7 @@ class HttpCase(unittest.TestCase):
             model_id="Qwen/Qwen3-ASR-0.6B",
             enhancer_name="ffmpeg-dsp",
         )
+        self.app = app
         self.server = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(app))
         self.base = f"http://127.0.0.1:{self.server.server_address[1]}"
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
@@ -245,3 +246,79 @@ class HttpCase(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertTrue(payload["text"])
         self.assertEqual(payload["enhance"], "off")
+
+    def test_ac_web_010(self) -> None:
+        chunks: list[str] = []
+        ready = threading.Event()
+        got = threading.Event()
+
+        def listen() -> None:
+            try:
+                with urlopen(self.base + "/api/events", timeout=5) as response:
+                    ready.set()
+                    while not got.is_set():
+                        line = response.fp.readline()
+                        if not line:
+                            break
+                        chunks.append(line.decode())
+                        text = "".join(chunks)
+                        if "转写中" in text and "你好" in text:
+                            got.set()
+                            break
+            except Exception:
+                ready.set()
+
+        worker = threading.Thread(target=listen, daemon=True)
+        worker.start()
+        self.assertTrue(ready.wait(timeout=2))
+        body, content_type = _multipart({}, {"file": ("a.wav", b"RIFF")})
+        status, payload = self._json("POST", "/api/transcribe", body, {"Content-Type": content_type})
+        self.assertEqual(status, 200)
+        self.assertTrue(got.wait(timeout=2), "".join(chunks))
+        worker.join(timeout=1)
+
+    def test_ac_asr_015(self) -> None:
+        from tests.test_pipeline import BlockingEnhancer
+
+        blocker = BlockingEnhancer()
+        app = App(
+            pipeline=Pipeline(blocker, FakeEngine()),
+            model_id="Qwen/Qwen3-ASR-0.6B",
+            enhancer_name="ffmpeg-dsp",
+        )
+        self.server.shutdown()
+        self.server.server_close()
+        self.server = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(app))
+        self.base = f"http://127.0.0.1:{self.server.server_address[1]}"
+        self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
+        self.thread.start()
+        body, content_type = _multipart({}, {"file": ("a.wav", b"RIFF")})
+        headers = {"Content-Type": content_type}
+
+        def first() -> None:
+            try:
+                urlopen(Request(self.base + "/api/transcribe", data=body, method="POST", headers=headers), timeout=3)
+            except Exception:
+                pass
+
+        worker = threading.Thread(target=first)
+        worker.start()
+        self.assertTrue(blocker.started.wait(timeout=2))
+        status, payload = self._json("GET", "/health")
+        self.assertEqual(status, 200)
+        self.assertTrue(payload["busy"])
+        blocker.release.set()
+        worker.join(timeout=2)
+        status, payload = self._json("GET", "/health")
+        self.assertFalse(payload["busy"])
+
+    def test_ac_asr_016(self) -> None:
+        self.app.logs.emit({"log": "冷启动加载模型", "busy": True})
+        with urlopen(self.base + "/api/events", timeout=3) as response:
+            text = ""
+            while "冷启动加载模型" not in text:
+                line = response.fp.readline()
+                if not line:
+                    break
+                text += line.decode()
+        self.assertIn("冷启动加载模型", text)

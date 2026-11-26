@@ -19,6 +19,11 @@
 | ✓ | F-WEB-006 | 用户切换 enhance 后提交，请求带上对应该开关的 on 或 off，页面展示响应里的 `enhance` | D-ASR-001 |
 | ✓ | F-WEB-007 | 用户打开页面时看到拖入区，脚本处理 drag-over 与 drop 文件 | D-ASR-001 |
 | ✓ | F-WEB-008 | health.missing 非空时页面展示缺少项，页面仍可打开 | D-ASR-001 |
+| ✓ | F-WEB-009 | 用户打开页面时底部有日志区，脚本用 EventSource 接收 /api/events 并追加 log | D-ASR-001 |
+| ✓ | F-WEB-010 | 转写进行中 /api/events 推送进度，完成后日志区出现转写文本 | D-ASR-001 |
+| ✓ | F-WEB-011 | 打开页面时若 health.busy 为真，提交按钮禁用 | D-ASR-002 |
+| ✓ | F-WEB-012 | 未选择文件就提交时，结果区显示请先拖入，且不调用 fetch | D-ASR-002 |
+| ✓ | F-WEB-013 | 转写过程中事件里的 text 写入结果区，不等整次请求结束 | D-ASR-002 |
 
 ## 阻塞延后
 

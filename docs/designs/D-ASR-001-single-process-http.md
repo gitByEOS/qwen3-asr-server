@@ -70,10 +70,11 @@ L6 运行时 src/runtime
 
 ```text
 上传文件 + enhance
- → L1 校验 → L2 单飞
+ → L1 校验 → L2 单飞（on_progress → SSE /api/events）
  → L3 有 ffmpeg：转码（on 再滤镜）；无 ffmpeg：wav+off 直通，否则 503
  → L5 有 qwen-asr：转写；无：503
  → {text, language, enhance} 或缺包 JSON error
+心跳 30s × 5 次无 transcribe → L5.release 卸模型
 ```
 
 ### 关键设计点
@@ -93,6 +94,8 @@ L6 运行时 src/runtime
 | 缺包不崩 | L6 只探活不导入；缺项进 health.missing；请求 503 | 进程要继续给人看网页 |
 | 网页拖入 | 文档级 dragenter/drop 写入 file input | 参考 videoya 拖入区 |
 | 单飞 | L2 同时只跑一条 | 模型占内存 |
+| 进度回传 | GET /api/events SSE，L2 on_progress 推 log | POST 会堵在冷启动，进度必须另开通道 |
+| 空闲卸载 | 30s 心跳，连续 5 次无 transcribe 则 release | 解放内存，下次冷启动 |
 | 不引用 learn | `learn/` 只读 | 禁止 import whisperjav |
 
 ## 被排除方案
@@ -126,6 +129,6 @@ L6 运行时 src/runtime
 | 日期 | 评审结论 | 备注 |
 |---|---|---|
 | 2026-11-26 | 修订 | 去掉对齐器与 SRT；L1–L6 隔离；L3 增强 |
-| 2026-11-26 | 修订 | 增加 enhance on/off；禁止双次 ASR |
-| 2026-11-26 | 待用户确认实现 | 确认前不写实现代码 |
+| 2026-11-26 | 修订 | 增加 enhance on/off|
 | 2026-11-26 | 修订 | 缺包不崩、health 探活、网页拖入 |
+| 2026-11-26 | 修订 | SSE 进度日志；30s×5 空闲卸模型 |

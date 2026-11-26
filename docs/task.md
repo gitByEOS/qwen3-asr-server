@@ -23,6 +23,8 @@
   - 轮次1：补 web_launch 与装配入口，feat-verify 12 个 AC 锚点完整，L1 不引用 L3/L5；<dirs:docs;src;tests;web_launch.sh;>
 - [x] TASK-009 [2bc5a7e]: 写 tools/setup.sh，在本机补齐 ffmpeg、qwen_asr、torch，并用 --check 验收完备
   - 轮次1：用 uv 走清华源装包、魔搭拉 0.6B，setup --check 三项就绪；<dirs:docs;src;tests;tools;web_launch.sh;>
+- [x] TASK-010 [cb3c4bf]: 写刷新后网页与后端协同设计，并实现状态同步
+  - 轮次1：刷新后用 health.busy 和日志回放接上转写，文件不能恢复；<dirs:README.md;docs;src;tests;>
 
 ## 远期规划
 - GPU 人声分离

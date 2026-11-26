@@ -17,6 +17,11 @@
 | AC-WEB-006 | F-WEB-006 | 开关关闭时请求字段 enhance=off，打开时为 on，结果区展示响应中的 enhance | 单元测试 | `tests/test_web_page.py` | `test_ac_web_006` |
 | AC-WEB-007 | F-WEB-007 | 页面含 drop-zone，脚本处理 drag-over 与 dataTransfer.files | 单元测试 | `tests/test_web_page.py` | `test_ac_web_007` |
 | AC-WEB-008 | F-WEB-008 | 页面脚本读取 health.missing 并展示 warning | 单元测试 | `tests/test_web_page.py` | `test_ac_web_008` |
+| AC-WEB-009 | F-WEB-009 | 页面含 id=log，脚本创建 EventSource 监听 /api/events | 单元测试 | `tests/test_web_page.py` | `test_ac_web_009` |
+| AC-WEB-010 | F-WEB-010 | 订阅 /api/events 后发起转写，事件流含进度 log 与转写文本 | 单元测试 | `tests/test_asr_http.py` | `test_ac_web_010` |
+| AC-WEB-011 | F-WEB-011 | 页面脚本在 health.busy 时禁用提交按钮 | 单元测试 | `tests/test_web_page.py` | `test_ac_web_011` |
+| AC-WEB-012 | F-WEB-012 | 无文件提交时结果区写入请先拖入，且该判断位于 fetch 之前 | 单元测试 | `tests/test_web_page.py` | `test_ac_web_012` |
+| AC-WEB-013 | F-WEB-013 | 事件回调里把 data.text 写入结果区 | 单元测试 | `tests/test_web_page.py` | `test_ac_web_013` |
 
 ## 执行记录
 
@@ -29,3 +34,8 @@
 | 2026-11-26 | AC-WEB-006 | 通过 | `python3 -m unittest tests.test_web_page` |
 | 2026-11-26 | AC-WEB-007 | 通过 | `python3 -m unittest tests.test_web_page` |
 | 2026-11-26 | AC-WEB-008 | 通过 | `python3 -m unittest tests.test_web_page` |
+| 2026-11-26 | AC-WEB-009 | 通过 | `python3 -m unittest tests.test_web_page` |
+| 2026-11-26 | AC-WEB-010 | 通过 | `python3 -m unittest tests.test_asr_http` |
+| 2026-11-26 | AC-WEB-011 | 通过 | `python3 -m unittest tests.test_web_page` |
+| 2026-11-26 | AC-WEB-012 | 通过 | `python3 -m unittest tests.test_web_page` |
+| 2026-11-26 | AC-WEB-013 | 通过 | `python3 -m unittest tests.test_web_page` |

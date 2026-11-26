@@ -8,3 +8,9 @@ models/
 *.log
 .pytest_cache/
 .ruff_cache/
+.env
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/

@@ -68,3 +68,25 @@ class TestWebPage(unittest.TestCase):
     def test_ac_web_008(self) -> None:
         self.assertIn("data.missing", HTML)
         self.assertIn("warning", HTML)
+
+    def test_ac_web_009(self) -> None:
+        html = self._html()
+        self.assertIn('id="log"', html)
+        self.assertIn("EventSource", HTML)
+        self.assertIn("/api/events", HTML)
+
+    def test_ac_web_011(self) -> None:
+        self.assertIn("data.busy", HTML)
+        self.assertIn("setBusy(true)", HTML)
+        self.assertIn("submit.disabled = on", HTML)
+
+    def test_ac_web_012(self) -> None:
+        submit = HTML.split('form.addEventListener("submit"')[1]
+        before_fetch = submit.split("fetch(")[0]
+        self.assertIn("请先拖入文件", before_fetch)
+        self.assertIn("if (!file)", before_fetch)
+
+    def test_ac_web_013(self) -> None:
+        events = HTML.split("events.onmessage")[1].split('form.addEventListener("submit"')[0]
+        self.assertIn("data.text", events)
+        self.assertIn("result.textContent = data.text", events)

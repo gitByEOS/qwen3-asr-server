@@ -44,7 +44,15 @@ class FakeEngine:
     def __init__(self, text: str = "你好") -> None:
         self.text = text
         self.calls: list[tuple[Path, str]] = []
+        self.model = None
+        self.release_count = 0
 
-    def transcribe(self, audio_path: Path, language: str) -> tuple[str, str]:
+    def transcribe(self, audio_path: Path, language: str, on_partial=None) -> tuple[str, str]:
         self.calls.append((audio_path, language))
+        if self.model is None:
+            self.model = FakeModel()
         return self.text, language
+
+    def release(self) -> None:
+        self.model = None
+        self.release_count += 1

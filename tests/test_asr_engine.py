@@ -8,7 +8,7 @@ from pathlib import Path
 import sys
 from unittest.mock import patch
 
-from src.asr.qwen_engine import QwenAsrEngine, extract_text, load_qwen_from_cache
+from src.asr.qwen_engine import QwenAsrEngine, extract_text, forced_language, load_qwen_from_cache, text_after_tag
 from src.protocol.errors import MissingDependencyError, OfflineError
 from tests.fakes import FakeLoader, MissingCacheLoader
 
@@ -35,6 +35,27 @@ class TestQwenAsrEngine(unittest.TestCase):
         self.assertEqual(engine.load_count, 1)
         self.assertEqual(loader.calls, 1)
         self.assertEqual(loader.network, 0)
+        engine.release()
+        self.assertIsNone(engine.model)
+
+    def test_auto_does_not_force_language(self) -> None:
+        seen: dict[str, str | None] = {}
+
+        class Model:
+            def transcribe(self, audio_path: str, language: str | None = None):
+                seen["language"] = language
+                return type("Raw", (), {"text": "你好", "language": "Chinese"})()
+
+        engine = QwenAsrEngine(load_model=lambda model_id: Model())
+        text, language = engine.transcribe(Path("a.wav"), "auto")
+        self.assertIsNone(seen["language"])
+        self.assertIsNone(forced_language("auto"))
+        self.assertEqual(text, "你好")
+        self.assertEqual(language, "Chinese")
+
+    def test_ac_asr_017(self) -> None:
+        self.assertEqual(text_after_tag("language Chinese"), "")
+        self.assertEqual(text_after_tag("language Chinese<asr_text>你好"), "你好")
 
     def test_missing_cache_is_offline(self) -> None:
         engine = QwenAsrEngine(load_model=MissingCacheLoader())

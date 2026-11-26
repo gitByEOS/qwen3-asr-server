@@ -20,3 +20,7 @@ class AsrEngine(Protocol):
     def transcribe(self, audio_path: Path, language: str) -> tuple[str, str]:
         """音频路径 → (text, language)。"""
         ...
+
+    def release(self) -> None:
+        """卸掉内存中的模型。"""
+        ...

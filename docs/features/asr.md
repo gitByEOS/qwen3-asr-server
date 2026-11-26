@@ -22,6 +22,11 @@
 | ✓ | F-ASR-010 | 缺 ffmpeg 或 qwen-asr 时 POST /api/transcribe 返回 503 JSON error，进程继续，GET /health 仍 200 | D-ASR-001 |
 | ✓ | F-ASR-011 | GET /health 的 JSON 含 capabilities.ffmpeg、capabilities.qwen_asr、capabilities.torch 与 missing 列表 | D-ASR-001 |
 | ✓ | F-ASR-012 | 缺 ffmpeg 且 enhance=off 时，wav 直通 L5 并返回 200，不 503 | D-ASR-001 |
+| ✓ | F-ASR-013 | 心跳连续 5 次且期间无 transcribe 时卸载模型；再次转写会重新加载 | D-ASR-001 |
+| ✓ | F-ASR-014 | 转写过程通过 on_progress 依次回传进度，并在结束时回传转写文本 | D-ASR-001 |
+| ✓ | F-ASR-015 | 转写进行中 GET /health 的 busy 为 true，结束后为 false | D-ASR-002 |
+| ✓ | F-ASR-016 | 新连接 GET /api/events 先收到订阅前已发出的日志 | D-ASR-002 |
+| ✓ | F-ASR-017 | 生成原文里还没有正文标记时不交出文本，出现标记后交出标记后面的字 | D-ASR-002 |
 
 ## 阻塞延后
 

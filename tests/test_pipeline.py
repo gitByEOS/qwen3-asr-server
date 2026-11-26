@@ -52,6 +52,29 @@ class TestPipeline(unittest.TestCase):
         blocker.release.set()
         worker.join(timeout=2)
 
+    def test_ac_asr_013(self) -> None:
+        engine = FakeEngine()
+        pipeline = Pipeline(FakeEnhancer(), engine)
+        pipeline.run(Path("a.wav"))
+        self.assertIsNotNone(engine.model)
+        for _ in range(4):
+            self.assertFalse(pipeline.heartbeat())
+        self.assertIsNotNone(engine.model)
+        self.assertTrue(pipeline.heartbeat())
+        self.assertIsNone(engine.model)
+        self.assertEqual(engine.release_count, 1)
+        pipeline.run(Path("b.wav"))
+        self.assertIsNotNone(engine.model)
+        self.assertEqual(len(engine.calls), 2)
+
+    def test_ac_asr_014(self) -> None:
+        notes: list[str] = []
+        pipeline = Pipeline(FakeEnhancer(), FakeEngine())
+        result = pipeline.run(Path("a.wav"), on_progress=notes.append)
+        self.assertIn("开始转写", notes)
+        self.assertIn("转写中", notes)
+        self.assertEqual(notes[-1], result.text)
+
 
 if __name__ == "__main__":
     unittest.main()
