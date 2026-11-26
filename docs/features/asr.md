@@ -12,13 +12,13 @@
 
 | 状态 | F 编号 | 可观测结果（主体在触发条件下产生） | design |
 |---|---|---|---|
-| × | F-ASR-001 | 调用方请求 GET /health 时得到 JSON，含 ok、model、enhancer、offline，且此次调用不加载 ASR 模型 | D-ASR-001 |
-| × | F-ASR-002 | 调用方以 multipart 上传合法音视频到 POST /api/transcribe 时得到 JSON，`text` 非空，含 `enhance`，且不含 segments/srt | D-ASR-001 |
-| × | F-ASR-003 | 调用方上传空文件、超 50MB、非音视频或非法 enhance 时得到 4xx 与 JSON `error`，且不调用引擎 | D-ASR-001 |
-| × | F-ASR-004 | 本地模型缓存缺失时 POST /api/transcribe 得到明确离线错误，进程不发起 HuggingFace 网络请求 | D-ASR-001 |
-| × | F-ASR-005 | 已有转写进行中时第二次 POST /api/transcribe 得到 429 与 JSON `error` | D-ASR-001 |
-| × | F-ASR-008 | enhance 缺省或为 on 时，L3 对输入执行 highpass+afftdn 后再交给 L5，响应 `enhance` 为 on，health.enhancer 为 ffmpeg-dsp | D-ASR-001 |
-| × | F-ASR-009 | enhance 为 off 时，L3 只转 16kHz 单声道、不接高通和降噪，L5 仍被调用一次，响应 `enhance` 为 off | D-ASR-001 |
+| ✓ | F-ASR-001 | 调用方请求 GET /health 时得到 JSON，含 ok、model、enhancer、offline，且此次调用不加载 ASR 模型 | D-ASR-001 |
+| ✓ | F-ASR-002 | 调用方以 multipart 上传合法音视频到 POST /api/transcribe 时得到 JSON，`text` 非空，含 `enhance`，且不含 segments/srt | D-ASR-001 |
+| ✓ | F-ASR-003 | 调用方上传空文件、超 50MB、非音视频或非法 enhance 时得到 4xx 与 JSON `error`，且不调用引擎 | D-ASR-001 |
+| ✓ | F-ASR-004 | 本地模型缓存缺失时 POST /api/transcribe 得到明确离线错误，进程不发起 HuggingFace 网络请求 | D-ASR-001 |
+| ✓ | F-ASR-005 | 已有转写进行中时第二次 POST /api/transcribe 得到 429 与 JSON `error` | D-ASR-001 |
+| ✓ | F-ASR-008 | enhance 缺省或为 on 时，L3 对输入执行 highpass+afftdn 后再交给 L5，响应 `enhance` 为 on，health.enhancer 为 ffmpeg-dsp | D-ASR-001 |
+| ✓ | F-ASR-009 | enhance 为 off 时，L3 只转 16kHz 单声道、不接高通和降噪，L5 仍被调用一次，响应 `enhance` 为 off | D-ASR-001 |
 
 ## 阻塞延后
 

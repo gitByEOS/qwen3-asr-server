@@ -28,7 +28,7 @@ class MissingCacheLoader:
         self.network = 0
 
     def __call__(self, model_id: str):
-        raise OfflineError("本地模型缓存缺失")
+        raise OfflineError("离线：本地模型缓存缺失")
 
 
 class FakeEnhancer:

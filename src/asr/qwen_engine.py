@@ -18,7 +18,7 @@ def load_qwen_from_cache(model_id: str):
     try:
         return Qwen3ASRModel.from_pretrained(model_id, local_files_only=True)
     except Exception as error:
-        raise OfflineError("本地模型缓存缺失") from error
+        raise OfflineError("离线：本地模型缓存缺失") from error
 
 
 def extract_text(raw) -> str:

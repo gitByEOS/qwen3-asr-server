@@ -22,10 +22,10 @@
 
 | 日期 | AC 编号 | 结果 | 证据 |
 |---|---|---|---|
-| 2026-11-26 | AC-ASR-001 | 未执行 | 方案待确认，尚未写测试 |
-| 2026-11-26 | AC-ASR-002 | 未执行 | 方案待确认，尚未写测试 |
-| 2026-11-26 | AC-ASR-003 | 未执行 | 方案待确认，尚未写测试 |
-| 2026-11-26 | AC-ASR-004 | 未执行 | 方案待确认，尚未写测试 |
-| 2026-11-26 | AC-ASR-005 | 未执行 | 方案待确认，尚未写测试 |
-| 2026-11-26 | AC-ASR-008 | 未执行 | 方案待确认，尚未写测试 |
-| 2026-11-26 | AC-ASR-009 | 未执行 | 方案待确认，尚未写测试 |
+| 2026-11-26 | AC-ASR-001 | 通过 | `python3 -m unittest tests.test_asr_http` |
+| 2026-11-26 | AC-ASR-002 | 通过 | `python3 -m unittest tests.test_asr_http` |
+| 2026-11-26 | AC-ASR-003 | 通过 | `python3 -m unittest tests.test_asr_http` |
+| 2026-11-26 | AC-ASR-004 | 通过 | `python3 -m unittest tests.test_asr_http` |
+| 2026-11-26 | AC-ASR-005 | 通过 | `python3 -m unittest tests.test_asr_http` |
+| 2026-11-26 | AC-ASR-008 | 通过 | `python3 -m unittest tests.test_asr_http` |
+| 2026-11-26 | AC-ASR-009 | 通过 | `python3 -m unittest tests.test_asr_http` |
