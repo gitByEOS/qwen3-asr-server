@@ -10,6 +10,7 @@ from tempfile import NamedTemporaryFile
 from urllib.parse import urlparse
 
 from src.entry.multipart import parse_multipart
+from src.entry.page import HTML
 from src.pipeline.runner import Pipeline
 from src.protocol.errors import BusyError, OfflineError
 from src.protocol.states import EnhanceState
@@ -41,6 +42,14 @@ def make_handler(app: App):
                     "enhancer": app.enhancer_name,
                     "offline": is_offline(),
                 })
+                return
+            if path in ("/", ""):
+                payload = HTML.encode("utf-8")
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Content-Length", str(len(payload)))
+                self.end_headers()
+                self.wfile.write(payload)
                 return
             self._json(404, {"error": "未找到"})
 

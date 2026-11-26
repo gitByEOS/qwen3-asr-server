@@ -20,8 +20,8 @@
 
 | 日期 | AC 编号 | 结果 | 证据 |
 |---|---|---|---|
-| 2026-11-26 | AC-WEB-001 | 未执行 | 方案待确认，尚未写测试 |
-| 2026-11-26 | AC-WEB-002 | 未执行 | 方案待确认，尚未写测试 |
-| 2026-11-26 | AC-WEB-003 | 未执行 | 方案待确认，尚未写测试 |
-| 2026-11-26 | AC-WEB-004 | 未执行 | 方案待确认，尚未写测试 |
-| 2026-11-26 | AC-WEB-006 | 未执行 | 方案待确认，尚未写测试 |
+| 2026-11-26 | AC-WEB-001 | 通过 | `python3 -m unittest tests.test_web_page` |
+| 2026-11-26 | AC-WEB-002 | 通过 | `python3 -m unittest tests.test_web_page` |
+| 2026-11-26 | AC-WEB-003 | 通过 | `python3 -m unittest tests.test_web_page` |
+| 2026-11-26 | AC-WEB-004 | 通过 | `python3 -m unittest tests.test_web_page` |
+| 2026-11-26 | AC-WEB-006 | 通过 | `python3 -m unittest tests.test_web_page` |
