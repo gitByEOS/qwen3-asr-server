@@ -51,3 +51,18 @@
 | 2026-11-26 | AC-ASR-018 | 通过 | `python3 -m unittest tests.test_audio tests.test_pipeline tests.test_asr_http` |
 | 2026-11-26 | AC-ASR-019 | 通过 | `python3 -m unittest tests.test_cli` |
 | 2026-11-26 | AC-ASR-020 | 通过 | `python3 -m unittest tests.test_mlx_engine` |
+
+## 人工实测记录
+
+2026-11-26，在 `48887ff` 上使用 macOS 13.7.1 Intel x86_64、Python 3.12 和项目已有 `Qwen3-ASR-0.6B` 权重验证真实推理，未安装或下载依赖、模型。
+
+输入由系统已安装的 Tingting 语音离线合成，约 7 秒，内容为“你好，这是本机离线语音转写测试，今天的任务已经完成。”；两条链路均使用默认 `auto` → torch、`enhance=on`。
+
+| 链路 | 调用方式 | 实际结果 | 耗时 |
+|---|---|---|---|
+| CLI | `./tools/transcribe.sh <样本.aiff>` | 退出码 0，标准输出含最终正文，输入文件 SHA256 不变 | 40.539 秒 |
+| HTTP | 临时启动本机服务，multipart 上传到 `POST /api/transcribe` | 200，language=Chinese、enhance=on；结束后 busy=false，临时服务退出 0 | 35.561 秒 |
+
+两条链路均得到正文：“你好，这是本机离线语音转写测试。今天的任务已经完成。”
+
+本记录只证明该短样本的 Intel torch 链路可用，不是准确率评估、性能保证或 Apple Silicon MLX 实机通过；不替代上方自动验收记录，也不表示已知缺陷已修复。

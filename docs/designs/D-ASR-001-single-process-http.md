@@ -17,6 +17,13 @@
 
 ### 用法与接口
 
+| 方法 | 路径 | 输入或返回 |
+|---|---|---|
+| GET | `/` | 文件选择、拖入与人声增强开关 |
+| GET | `/health` | 模型、后端、离线状态、依赖能力、missing 与 busy；不加载模型 |
+| POST | `/api/transcribe` | multipart：file、language（默认 auto）、enhance（默认 on，仅 on / off） |
+| GET | `/api/events` | SSE 推送进度、累计正文与 busy；刷新回放见 [D-ASR-002](D-ASR-002-refresh-sync.md) |
+
 ```python
 # ./web_launch.sh  →  http://<局域网IP>:11868/
 
@@ -27,7 +34,7 @@ result = pipeline.run(audio_path, language="auto", enhance="on")
 #   {"ok": true, "model": ".../Qwen3-ASR-0.6B-MLX-4bit", "backend": "mlx",
 #    "enhancer": "ffmpeg-dsp", "offline": true,
 #    "capabilities": {"ffmpeg": true, "qwen_asr_mlx": true,
-#                     "qwen_asr": false, "torch": false}, "missing": []}
+#                     "qwen_asr": false, "torch": false}, "missing": [], "busy": false}
 # POST /api/transcribe  multipart: file, language, enhance
 #   enhance 缺省为 on；只接受 on / off
 #   {"text": "...", "language": "zh", "enhance": "on"}
@@ -35,13 +42,13 @@ result = pipeline.run(audio_path, language="auto", enhance="on")
 
 ### 核心思路
 
-**六层分开，只出文本；增强是同一条 ffmpeg 路上的滤镜表，不是把同一段再识别一遍。** `enhance` 用一个状态 `on|off`。两次人工对比靠两次请求，不当场算准确率。
+**六层隔离，只出文本。** 增强与转码共用一次 ffmpeg，每个音频分组只识别一次；开关和对比方式见下方关键设计点。
 
 ### 分层与组件
 
 ```text
 L1 入口 src/entry
-  GET /  GET /health  POST /api/transcribe  内嵌网页（enhance 开关）
+  GET /  GET /health  POST /api/transcribe  GET /api/events  内嵌网页（enhance 开关）
   只依赖 L2
        ▼
 L2 编排 src/pipeline
@@ -72,7 +79,7 @@ L6 运行时 src/runtime
 
 ```text
 上传文件 + enhance
- → L1 校验 → L2 单飞（on_progress → SSE /api/events）
+ → L1 校验 → L2 单飞（on_progress / on_partial → SSE /api/events）
  → L3 有 ffmpeg：转码（on 再滤镜）；无 ffmpeg：wav+off 直通，否则 503
  → L5 按平台使用 Qwen3-ASR MLX 或 torch 后端；当前后端缺依赖时 503
  → {text, language, enhance} 或缺包 JSON error
@@ -97,7 +104,20 @@ L6 运行时 src/runtime
 | 缺包不崩 | L6 只探活不导入；缺项进 health.missing；请求 503 | 进程要继续给人看网页 |
 | 网页拖入 | 文档级 dragenter/drop 写入 file input | 文件选择和拖入走同一个 input |
 | 单飞 | L2 同时只跑一条 | 模型占内存 |
-| 进度回传 | GET /api/events SSE，L2 on_progress 推 log | POST 会堵在冷启动，进度必须另开通道 |
+| 进度回传 | GET /api/events SSE；on_progress 推日志，on_partial 推累计正文 | POST 会等待冷启动和推理，进度需独立通道 |
+
+### 安装本地模型
+
+`tools/setup.sh` 通过 uv 创建环境，并从 ModelScope 下载当前平台的默认模型：
+
+| 平台 | Python 选择 | 模型来源 → 本地目录 |
+|---|---|---|
+| Darwin arm64 | 新建环境时优先复用已有 Python ≥3.12，否则由 uv 准备 3.12；已有 `.venv` 也须满足最低版本 | [aufklarer/Qwen3-ASR-0.6B-MLX-4bit](https://www.modelscope.cn/models/aufklarer/Qwen3-ASR-0.6B-MLX-4bit) → `models/Qwen3-ASR-0.6B-MLX-4bit` |
+| 其它平台 | Python 3.12；已有 `.venv` 版本必须匹配 | `Qwen/Qwen3-ASR-0.6B` → `models/Qwen3-ASR-0.6B` |
+
+版本不兼容或环境损坏时保留原目录并报错，不自动重建。ffmpeg 不在 PATH 时下载对应架构的静态二进制到 `bin/`。
+
+指定 MLX 仓库原生面向 Swift，缺少 Python 特征提取元数据；脚本从 `tools/mlx_preprocessor_config.json` 补入 `preprocessor_config.json`，权重仍来自上表仓库。网页与命令行按同一后端选择默认目录，运行时可用 `QWEN_ASR_MODEL` 覆盖。
 
 ## 被排除方案
 
@@ -132,3 +152,20 @@ L6 运行时 src/runtime
 | 2026-11-26 | 修订 | 增加 enhance on/off|
 | 2026-11-26 | 修订 | 缺包不崩、health 探活、网页拖入 |
 | 2026-11-26 | 修订 | SSE 进度日志 |
+
+## 实现偏差与验证范围
+
+设计要求保持不变，以下是当前实现缺口，不是已放宽的约束：
+
+| 设计要求 | 当前实现 |
+|---|---|
+| 非音视频返回 4xx | ffmpeg 解码失败进入通用异常分支，返回 500 |
+| 转写只交出正文 | MLX 自动识别 Cantonese、Macedonian 时可能泄漏 `<asr_text>`，语言仍为 auto |
+| 自检检查实际转写所用模型 | `setup --check` 忽略 `QWEN_ASR_MODEL`，仍检查默认目录 |
+| 模型不完整时自检失败 | 仅检查 `config.json`，MLX 另查 `preprocessor_config.json` 是否存在；不验证内容、权重或分词器，空配置也可能通过 |
+| 解释器准备失败立即停止 | MLX 分支下载 Python 失败后仍可能继续执行查找和创建环境 |
+| 非法后端在安装前拒绝 | 非法值可能先进入 torch 依赖安装，最后才失败 |
+
+`setup --check` 还会校验解释器版本与当前后端依赖，不执行安装；它与 `/health` 都不能代替实际转写验证。
+
+接口与测试锚点见 [ASR 契约](../../tests/contracts/asr_contract.md)，Intel torch 短样本结果见其[人工实测记录](../../tests/contracts/asr_contract.md#人工实测记录)。替身测试不等于 MLX 实机推理或准确率通过。

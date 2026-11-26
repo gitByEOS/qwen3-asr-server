@@ -33,6 +33,10 @@
   - 轮次1：安装脚本统一准备和校验Python3.12，拒绝并保留不兼容或损坏环境，解释器下载失败立即停止，README无需手动选择Python，11项安装回归与93项全量测试通过；<dirs:README.md;docs;src;tests;tools;>
 - [x] TASK-014 [f166c44]: 补齐 Apple Silicon MLX 4-bit 推理支持
   - 轮次1：Darwin arm64 自动选择 MLX，从魔搭下载 aufklarer 4-bit 模型；其它平台保持 torch；<dirs:docs;src;tests;tools;web_launch.sh;>
+- [x] TASK-015 [48887ff]: 实测本机真实离线转写，并按莱特规范精简说明文档，提高人类可读性
+  - 轮次1：派出莱特规范化README与四份设计且保留命令接口约束与已知缺陷，36项相关测试和30个锚点通过；<dirs:README.md;docs;>
+- [x] TASK-016 [48887ff]: 根据记忆重新梳理REAME写法与职责
+  - 轮次1：README仅保留快速入门和简短使用限制，技术说明归入原设计规范，真实转写证据归入验收记录，链接规范及30锚点完整且8项CLI测试通过；<dirs:README.md;docs;tests;>
 
 ## 远期规划
 - GPU 人声分离

@@ -43,4 +43,6 @@ tools/transcribe.sh → src.cli 参数校验 → 离线模式 → 自动选择 A
 
 ## 验证
 
-`tests/test_cli.py` 验证参数、单次调用、stdout/stderr 隔离、错误退出、模型释放、HTTP 模块未导入、空格路径、异地执行与模型覆盖。真实模型准确率不以替身测试代替。
+`python3 -m unittest tests.test_cli` 验证参数、单组调用、stdout/stderr 隔离、错误退出、模型释放、HTTP 模块未导入、空格路径、异地执行与模型覆盖。单组场景调用一次引擎；多组按预处理顺序逐组识别，不重复识别同一组，分组规则见 [D-ASR-003](D-ASR-003-silence-split.md)。
+
+这些替身测试不证明真实模型推理或准确率。Intel torch 的真实短样本结果见 [ASR 契约的人工实测记录](../../tests/contracts/asr_contract.md#人工实测记录)，MLX 输出偏差见 [D-ASR-001](D-ASR-001-single-process-http.md#实现偏差与验证范围)。
