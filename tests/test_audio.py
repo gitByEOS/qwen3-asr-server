@@ -3,15 +3,17 @@
 from __future__ import annotations
 
 import os
+import struct
 import tempfile
 import unittest
+import wave
 from pathlib import Path
 from subprocess import CompletedProcess
 
 from unittest.mock import patch
 
 from src.audio.ffmpeg_dsp import FILTERS, FfmpegDspEnhancer, ffmpeg_args
-from src.audio.silence import Atom, SilenceSpan, atoms_from_silences, merge_silences, pack_atoms, speech_files
+from src.audio.silence import Atom, SilenceSpan, _write_range, atoms_from_silences, merge_silences, pack_atoms, speech_files
 from src.pipeline.runner import Pipeline
 from src.protocol.errors import MissingDependencyError
 from src.protocol.states import EnhanceState
@@ -97,6 +99,54 @@ class TestSilenceSplit(unittest.TestCase):
         self.assertEqual(seen[0], "甲")
         self.assertEqual(seen[-1], "甲乙")
         self.assertEqual(atoms_from_silences(3.0, []), [Atom(0.0, 3.0)])
+
+    def test_short_voiced_atoms_are_preserved(self) -> None:
+        self.assertEqual(
+            atoms_from_silences(1.405, [SilenceSpan(1.0, 1.4)]),
+            [Atom(0.0, 1.0), Atom(1.4, 1.405)],
+        )
+        self.assertEqual(
+            atoms_from_silences(2.0, [SilenceSpan(0.005, 0.5), SilenceSpan(0.505, 1.0)]),
+            [Atom(0.0, 0.005), Atom(0.5, 0.505), Atom(1.0, 2.0)],
+        )
+        self.assertEqual(atoms_from_silences(0.0, []), [])
+        self.assertEqual(atoms_from_silences(1.0, [SilenceSpan(0.0, 1.0)]), [])
+
+    def test_short_voiced_tail_keeps_all_samples(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "tail.wav"
+            voice = struct.pack("<h", 2000)
+            payload = voice * 16000 + b"\0\0" * 6400 + voice * 80
+            with wave.open(str(source), "wb") as target:
+                target.setparams((1, 2, 16000, 0, "NONE", "not compressed"))
+                target.writeframes(payload)
+            pieces = speech_files(source)
+            try:
+                output = bytearray()
+                for piece in pieces:
+                    with wave.open(str(piece), "rb") as audio:
+                        output.extend(audio.readframes(audio.getnframes()))
+                voiced = sum(value != 0 for value, in struct.iter_unpack("<h", output))
+                self.assertEqual(voiced, 16080)
+                self.assertTrue(source.exists())
+            finally:
+                for piece in pieces:
+                    if piece != source:
+                        piece.unlink(missing_ok=True)
+
+    def test_slice_uses_sample_endpoints(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "samples.wav"
+            with wave.open(str(source), "wb") as target:
+                target.setparams((1, 2, 16000, 0, "NONE", "not compressed"))
+                target.writeframes(struct.pack("<16000h", *range(16000)))
+            piece = _write_range(source, 1 / 16000, 11 / 16000)
+            try:
+                with wave.open(str(piece), "rb") as audio:
+                    self.assertEqual(audio.getnframes(), 10)
+                    self.assertEqual(audio.readframes(1), struct.pack("<h", 1))
+            finally:
+                piece.unlink(missing_ok=True)
 
     def test_split_removes_full_render(self) -> None:
         full_fd, full_name = tempfile.mkstemp(suffix=".wav")

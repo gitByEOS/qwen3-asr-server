@@ -27,6 +27,10 @@
   - 轮次1：刷新后用 health.busy 和日志回放接上转写，文件不能恢复；<dirs:README.md;docs;src;tests;>
 - [x] TASK-011 [8131d28]: 按 D-ASR-003 先扫静音、归并、切分后再解析
   - 轮次1：先扫静音再归并，短间隔留在人声段里，按段解析并拼接；<dirs:docs;src;tests;>
+- [x] TASK-012 [cbd2807]: 修复推送前审查的占锁、短有声丢样和装箱性能问题，并提供 tools 无 server 转写脚本
+  - 轮次1：清理异常始终释放单飞锁并保留所有非空有声采样，精确剪枝保持装箱目标，新增离线单文件脚本且标准输出仅含文本，82项测试和29个契约锚点通过；<dirs:README.md;docs;src;tests;tools;>
+- [x] TASK-013 [cbd2807]: 由 setup 自动准备 Python 3.12 并校验已有环境，消除 README 中 Intel Mac 的手动注意事项
+  - 轮次1：安装脚本统一准备和校验Python3.12，拒绝并保留不兼容或损坏环境，解释器下载失败立即停止，README无需手动选择Python，11项安装回归与93项全量测试通过；<dirs:README.md;docs;src;tests;tools;>
 
 ## 远期规划
 - GPU 人声分离

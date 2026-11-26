@@ -8,6 +8,7 @@ import threading
 import unittest
 import wave
 from pathlib import Path
+from unittest.mock import patch
 
 from src.pipeline.runner import Pipeline, piece_seconds
 from src.protocol.errors import BusyError
@@ -97,6 +98,27 @@ class TestPipeline(unittest.TestCase):
         finally:
             source.unlink(missing_ok=True)
             render.unlink(missing_ok=True)
+
+    def test_cleanup_failure_releases_lock(self) -> None:
+        engine = FakeEngine()
+        pipeline = Pipeline(FakeEnhancer(), engine)
+        with patch("src.pipeline.runner._drop_renders", side_effect=PermissionError("切片无法删除")):
+            with self.assertRaisesRegex(PermissionError, "切片无法删除"):
+                pipeline.run(Path("a.wav"))
+        self.assertFalse(pipeline.is_busy())
+        for _ in range(5):
+            pipeline.heartbeat()
+        self.assertEqual(engine.release_count, 1)
+        self.assertEqual(pipeline.run(Path("b.wav")).text, "你好")
+
+    def test_engine_failure_releases_lock(self) -> None:
+        engine = FakeEngine()
+        pipeline = Pipeline(FakeEnhancer(), engine)
+        with patch.object(engine, "transcribe", side_effect=RuntimeError("识别失败")):
+            with self.assertRaisesRegex(RuntimeError, "识别失败"):
+                pipeline.run(Path("a.wav"))
+        self.assertFalse(pipeline.is_busy())
+        self.assertEqual(pipeline.run(Path("b.wav")).text, "你好")
 
     def test_piece_seconds_reads_wav(self) -> None:
         with tempfile.NamedTemporaryFile(suffix=".wav") as handle:

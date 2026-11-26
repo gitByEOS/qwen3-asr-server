@@ -52,10 +52,10 @@ def atoms_from_silences(duration: float, silences: list[SilenceSpan]) -> list[At
     atoms: list[Atom] = []
     cursor = 0.0
     for silence in silences:
-        if silence.start - cursor > 0.01:
+        if silence.start > cursor:
             atoms.append(Atom(cursor, silence.start))
         cursor = max(cursor, silence.end)
-    if duration - cursor > 0.01:
+    if duration > cursor:
         atoms.append(Atom(cursor, duration))
     return atoms
 
@@ -72,7 +72,11 @@ def pack_atoms(atoms: list[Atom], target: float = TARGET_SEC) -> list[tuple[int,
     for start in range(count - 1, -1, -1):
         for end in range(start + 1, count + 1):
             duration = atoms[end - 1].end - atoms[start].start
-            cost = (duration - target) ** 2 + best_cost[end]
+            group_cost = (duration - target) ** 2
+            # 超过目标后组代价单调不减，后缀非负；保留容差内的平局候选
+            if duration >= target and group_cost > best_cost[start] + 1e-9:
+                break
+            cost = group_cost + best_cost[end]
             groups = 1 + best_groups[end]
             short = duration if end == count else min(duration, best_short[end])
             chosen = best_cost[start] == float("inf")
@@ -106,7 +110,7 @@ def speech_files(wav_path: Path) -> list[Path]:
         (atoms[start].start, atoms[end - 1].end)
         for start, end in pack_atoms(atoms)
     ]
-    if len(ranges) == 1 and ranges[0][0] <= 0.01 and abs(ranges[0][1] - duration) <= 0.02:
+    if ranges == [(0.0, duration)]:
         return [wav_path]
     written: list[Path] = []
     try:
@@ -167,8 +171,10 @@ def _scan(wav_path: Path) -> tuple[float, list[SilenceSpan]]:
 def _write_range(wav_path: Path, start: float, end: float) -> Path:
     with wave.open(str(wav_path), "rb") as source:
         rate = source.getframerate()
-        source.setpos(int(start * rate))
-        frames = source.readframes(max(0, int((end - start) * rate)))
+        first_frame = round(start * rate)
+        last_frame = round(end * rate)
+        source.setpos(first_frame)
+        frames = source.readframes(max(0, last_frame - first_frame))
         params = source.getparams()
     fd, name = tempfile.mkstemp(suffix=".wav")
     os.close(fd)

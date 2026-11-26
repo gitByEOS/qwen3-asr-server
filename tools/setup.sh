@@ -9,17 +9,20 @@ BIN="$ROOT/bin"
 MODEL_DIR="$ROOT/models/Qwen3-ASR-0.6B"
 PIP_INDEX_URL="${PIP_INDEX_URL:-https://pypi.tuna.tsinghua.edu.cn/simple}"
 FFMPEG_STATIC_TAG="b6.1.1"
+# 统一解释器，避免 Intel Mac 使用 Python 3.13 时没有可用的 torch 轮子
+PYTHON_VERSION="3.12"
 export PATH="${BIN}:/opt/homebrew/bin:/usr/local/bin:${PATH}"
 
 log() { echo "[setup] $*"; }
+fail() { echo "$*" >&2; exit 1; }
 
 base_python() {
-  if command -v python3.12 >/dev/null; then
-    command -v python3.12
+  if command -v "python${PYTHON_VERSION}" >/dev/null; then
+    command -v "python${PYTHON_VERSION}"
     return
   fi
-  uv python install 3.12 >/dev/null
-  uv python find 3.12
+  uv python install "$PYTHON_VERSION" >/dev/null || return "$?"
+  uv python find "$PYTHON_VERSION"
 }
 
 ffmpeg_asset() {
@@ -53,12 +56,23 @@ ensure_ffmpeg() {
   install_ffmpeg_static
 }
 
+check_python() {
+  [[ -x "$VENV/bin/python" ]] || fail "已有 .venv 不完整，已保留：${VENV}；请先移走该目录，再运行 ./tools/setup.sh"
+  local version
+  version="$("$VENV/bin/python" -c 'import sys; print("%d.%d" % sys.version_info[:2])')" || fail "无法运行 .venv 中的解释器，已保留：${VENV}；请先移走该目录，再运行 ./tools/setup.sh"
+  [[ "$version" == "$PYTHON_VERSION" ]] || fail "已有 .venv 使用 Python ${version}，需要 Python ${PYTHON_VERSION}，已保留：${VENV}；请先移走该目录，再运行 ./tools/setup.sh"
+}
+
 ensure_venv() {
-  if [[ -x "$VENV/bin/python" ]]; then
+  if [[ -e "$VENV" || -L "$VENV" ]]; then
+    check_python
     return
   fi
-  log "创建 .venv"
-  uv venv "$VENV" --python "$(base_python)"
+  local python
+  python="$(base_python)"
+  log "使用 Python ${PYTHON_VERSION} 创建 .venv"
+  uv venv "$VENV" --python "$python"
+  check_python
 }
 
 pip_install() {
@@ -89,6 +103,8 @@ PY
 }
 
 run_check() {
+  [[ -e "$VENV" || -L "$VENV" ]] || fail "尚未安装，请先运行 ./tools/setup.sh"
+  check_python
   PYTHONPATH="$ROOT" "$VENV/bin/python" - <<'PY'
 from src.runtime.capabilities import missing_of, probe
 
@@ -106,8 +122,9 @@ case "${1:-}" in
     run_check
     ;;
   "")
-    ensure_ffmpeg
+    command -v uv >/dev/null || fail "需要 uv，请先安装 uv 后再运行 ./tools/setup.sh"
     ensure_venv
+    ensure_ffmpeg
     install_python_packages
     ensure_model
     run_check

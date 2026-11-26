@@ -100,8 +100,10 @@ class Pipeline:
             notify(str(error))
             raise
         finally:
-            _drop_renders(pieces, Path(audio_path))
-            self._lock.release()
+            try:
+                _drop_renders(pieces, Path(audio_path))
+            finally:
+                self._lock.release()
 
     def is_busy(self) -> bool:
         return self._lock.locked()

@@ -26,6 +26,7 @@
 | AC-ASR-016 | F-ASR-016 | 订阅前发出的日志会在新的 /api/events 连接里先出现 | 单元测试 | `tests/test_asr_http.py` | `test_ac_asr_016` |
 | AC-ASR-017 | F-ASR-017 | 没有正文标记时交出空串，有标记时只交出标记后的文字 | 单元测试 | `tests/test_asr_engine.py` | `test_ac_asr_017` |
 | AC-ASR-018 | F-ASR-018 | 10 与 12 再加后面三段收成 22 秒和 28 秒；短气口落在组的时间范围内 | 单元测试 | `tests/test_audio.py` | `test_ac_asr_018` |
+| AC-ASR-019 | F-ASR-019 | 命令行只调用一次引擎，stdout 只含最终文本，stderr 有进度；失败非零退出，不导入 HTTP 服务 | 单元测试 | `tests/test_cli.py` | `test_ac_asr_019` |
 
 ## 执行记录
 
@@ -47,3 +48,4 @@
 | 2026-11-26 | AC-ASR-016 | 通过 | `python3 -m unittest tests.test_asr_http` |
 | 2026-11-26 | AC-ASR-017 | 通过 | `python3 -m unittest tests.test_asr_engine` |
 | 2026-11-26 | AC-ASR-018 | 通过 | `python3 -m unittest tests.test_audio tests.test_pipeline tests.test_asr_http` |
+| 2026-11-26 | AC-ASR-019 | 通过 | `python3 -m unittest tests.test_cli` |
