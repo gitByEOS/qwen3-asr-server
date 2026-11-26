@@ -31,6 +31,8 @@
   - 轮次1：清理异常始终释放单飞锁并保留所有非空有声采样，精确剪枝保持装箱目标，新增离线单文件脚本且标准输出仅含文本，82项测试和29个契约锚点通过；<dirs:README.md;docs;src;tests;tools;>
 - [x] TASK-013 [cbd2807]: 由 setup 自动准备 Python 3.12 并校验已有环境，消除 README 中 Intel Mac 的手动注意事项
   - 轮次1：安装脚本统一准备和校验Python3.12，拒绝并保留不兼容或损坏环境，解释器下载失败立即停止，README无需手动选择Python，11项安装回归与93项全量测试通过；<dirs:README.md;docs;src;tests;tools;>
+- [x] TASK-014 [f166c44]: 补齐 Apple Silicon MLX 4-bit 推理支持
+  - 轮次1：Darwin arm64 自动选择 MLX，从魔搭下载 aufklarer 4-bit 模型；其它平台保持 torch；<dirs:docs;src;tests;tools;web_launch.sh;>
 
 ## 远期规划
 - GPU 人声分离

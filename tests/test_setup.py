@@ -37,12 +37,12 @@ if name == "uv":
         shutil.copyfile(root / "bin/python3.12", destination)
         destination.chmod(0o755)
     raise SystemExit(0)
-if name in ("python", "python3.12"):
+if name in ("python", "python3", "python3.12"):
     if args[:1] == ["-c"]:
         if os.environ.get("SETUP_TEST_BROKEN_PYTHON"):
             raise SystemExit(1)
         print(os.environ.get("SETUP_TEST_VERSION", "3.12"))
-    elif args == ["-"]:
+    elif args[:1] == ["-"]:
         sys.stdin.read()
         print("完备")
     raise SystemExit(0)
@@ -58,14 +58,26 @@ class TestSetup(unittest.TestCase):
         (self.root / "tools").mkdir(parents=True)
         (self.root / "bin").mkdir()
         shutil.copyfile(ROOT / "tools/setup.sh", self.root / "tools/setup.sh")
+        shutil.copyfile(
+            ROOT / "tools/mlx_preprocessor_config.json",
+            self.root / "tools/mlx_preprocessor_config.json",
+        )
         model = self.root / "models/Qwen3-ASR-0.6B"
         model.mkdir(parents=True)
         (model / "config.json").write_text("{}")
-        for name in ("uv", "python3.12", "ffmpeg", "curl"):
+        mlx_model = self.root / "models/Qwen3-ASR-0.6B-MLX-4bit"
+        mlx_model.mkdir(parents=True)
+        (mlx_model / "config.json").write_text("{}")
+        for name in ("uv", "python3", "python3.12", "ffmpeg", "curl"):
             command = self.root / "bin" / name
             command.write_text(f"#!{sys.executable}\n" + FAKE_COMMAND)
             command.chmod(0o755)
-        self.env = dict(os.environ, SETUP_TEST_ROOT=str(self.root))
+        self.env = dict(
+            os.environ,
+            SETUP_TEST_ROOT=str(self.root),
+            QWEN_ASR_BACKEND="torch",
+            PATH=f"{self.root / 'bin'}{os.pathsep}{os.environ['PATH']}",
+        )
         hooks = self.root / "shell_hooks"
         hooks.write_text(
             'command() {\n'
@@ -143,6 +155,23 @@ class TestSetup(unittest.TestCase):
         self.assertIn("保留", result.stderr)
         self.assertEqual(python.read_bytes(), original)
         self.assertFalse(any(call[0] in ("uv", "curl") for call in self.calls()))
+
+    def test_mlx_new_environment_reuses_current_python_314(self) -> None:
+        self.env["QWEN_ASR_BACKEND"] = "mlx"
+        self.env["SETUP_TEST_VERSION"] = "3.14"
+        result = self.run_setup()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        venv = [call for call in self.calls() if call[:2] == ["uv", "venv"]]
+        self.assertEqual(len(venv), 1)
+        self.assertEqual(Path(venv[0][-1]).resolve(), (self.root / "bin/python3").resolve())
+        self.assertNotIn(["uv", "python", "install", "3.12"], self.calls())
+
+    def test_mlx_existing_python_314_is_accepted(self) -> None:
+        self.env["QWEN_ASR_BACKEND"] = "mlx"
+        self.environment("3.14")
+        result = self.run_setup("--check")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("完备", result.stdout)
 
     def test_incomplete_environment_is_preserved(self) -> None:
         marker = self.root / ".venv/用户文件"

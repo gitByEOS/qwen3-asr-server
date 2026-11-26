@@ -29,13 +29,14 @@ class TestCommandLine(unittest.TestCase):
             engine = FakeEngine()
             enhancer = FakeEnhancer()
             output, errors = io.StringIO(), io.StringIO()
-            with patch.object(cli, "QwenAsrEngine", return_value=engine), patch.object(
+            with patch.object(cli, "create_engine", return_value=("torch", engine)), patch.object(
                 cli, "FfmpegDspEnhancer", return_value=enhancer
             ), contextlib.redirect_stdout(output), contextlib.redirect_stderr(errors):
                 code = cli.main([str(source), "--enhance", "off", "--language", "Chinese"])
             self.assertEqual(code, 0)
             self.assertEqual(output.getvalue(), "你好\n")
             self.assertIn("开始转写", errors.getvalue())
+            self.assertNotIn("你好", errors.getvalue())
             self.assertEqual(len(engine.calls), 1)
             self.assertEqual(engine.calls[0], (source, "Chinese"))
             self.assertEqual(enhancer.calls[0][1], EnhanceState.OFF)
@@ -51,7 +52,7 @@ class TestCommandLine(unittest.TestCase):
 
         with tempfile.NamedTemporaryFile(suffix=".wav") as source:
             output, errors = io.StringIO(), io.StringIO()
-            with patch.object(cli, "QwenAsrEngine", return_value=NoisyEngine()), patch.object(
+            with patch.object(cli, "create_engine", return_value=("torch", NoisyEngine())), patch.object(
                 cli, "FfmpegDspEnhancer", return_value=FakeEnhancer()
             ), contextlib.redirect_stdout(output), contextlib.redirect_stderr(errors):
                 code = cli.main([source.name])
@@ -63,7 +64,7 @@ class TestCommandLine(unittest.TestCase):
         with tempfile.NamedTemporaryFile(suffix=".wav") as source:
             engine = FakeEngine()
             output, errors = io.StringIO(), io.StringIO()
-            with patch.object(cli, "QwenAsrEngine", return_value=engine), patch.object(
+            with patch.object(cli, "create_engine", return_value=("torch", engine)), patch.object(
                 cli, "FfmpegDspEnhancer", return_value=FakeEnhancer()
             ), patch.object(engine, "transcribe", side_effect=RuntimeError("识别失败")), contextlib.redirect_stdout(
                 output
@@ -77,7 +78,7 @@ class TestCommandLine(unittest.TestCase):
     def test_invalid_input_does_not_create_engine(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             for arguments in ([str(Path(directory) / "missing.wav")], [directory], ["--enhance", "maybe"]):
-                with self.subTest(arguments=arguments), patch.object(cli, "QwenAsrEngine") as factory:
+                with self.subTest(arguments=arguments), patch.object(cli, "create_engine") as factory:
                     with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as caught:
                         cli.main(arguments)
                     self.assertEqual(caught.exception.code, 2)
@@ -85,7 +86,7 @@ class TestCommandLine(unittest.TestCase):
 
     def test_help_needs_no_model(self) -> None:
         output = io.StringIO()
-        with patch.object(cli, "QwenAsrEngine") as factory, contextlib.redirect_stdout(output):
+        with patch.object(cli, "create_engine") as factory, contextlib.redirect_stdout(output):
             with self.assertRaises(SystemExit) as caught:
                 cli.main(["--help"])
         self.assertEqual(caught.exception.code, 0)
@@ -114,6 +115,7 @@ class TestTranscribeScript(unittest.TestCase):
                 f"#!{sys.executable}\n"
                 "import json, os, sys\n"
                 "print(json.dumps({'args':sys.argv[1:], 'cwd':os.getcwd(), 'model':os.environ['QWEN_ASR_MODEL'], "
+                "'backend':os.environ['QWEN_ASR_BACKEND'], "
                 "'offline':os.environ['HF_HUB_OFFLINE'], 'path':os.environ['PATH'], 'pythonpath':os.environ['PYTHONPATH']}))\n"
             )
             interpreter.chmod(0o755)
@@ -129,6 +131,7 @@ class TestTranscribeScript(unittest.TestCase):
             self.assertEqual(data["args"], ["-B", "-m", "src.cli", "语音 样例.wav", "--enhance", "off"])
             self.assertEqual(Path(data["cwd"]).resolve(), caller.resolve())
             self.assertEqual(data["model"], "/自定义/模型")
+            self.assertEqual(data["backend"], "auto")
             self.assertEqual(data["offline"], "1")
             self.assertEqual(Path(data["pythonpath"].split(os.pathsep)[0]).resolve(), root.resolve())
             self.assertEqual(Path(data["path"].split(os.pathsep)[0]).resolve(), (root / "bin").resolve())
@@ -138,9 +141,8 @@ class TestTranscribeScript(unittest.TestCase):
                 cwd=caller, env=env, capture_output=True, text=True, timeout=10,
             )
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertEqual(
-                Path(json.loads(result.stdout)["model"]).resolve(), (root / "models/Qwen3-ASR-0.6B").resolve()
-            )
+            default_model = "Qwen3-ASR-0.6B-MLX-4bit" if sys.platform == "darwin" and os.uname().machine == "arm64" else "Qwen3-ASR-0.6B"
+            self.assertEqual(Path(json.loads(result.stdout)["model"]).resolve(), (root / "models" / default_model).resolve())
 
     def test_real_shell_help_and_missing_input(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

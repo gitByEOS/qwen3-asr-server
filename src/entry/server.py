@@ -32,6 +32,7 @@ class App:
     pipeline: Pipeline
     model_id: str
     enhancer_name: str
+    backend: str = "torch"
     logs: LogBus = field(default_factory=LogBus)
 
 
@@ -53,10 +54,11 @@ def make_handler(app: App):
                 self._json(200, {
                     "ok": True,
                     "model": app.model_id,
+                    "backend": app.backend,
                     "enhancer": app.enhancer_name,
                     "offline": is_offline(),
                     "capabilities": capabilities,
-                    "missing": missing_of(capabilities),
+                    "missing": missing_of(capabilities, app.backend),
                     "busy": app.pipeline.is_busy(),
                 })
                 return

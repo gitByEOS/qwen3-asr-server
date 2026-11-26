@@ -10,7 +10,15 @@ export PATH="${SCRIPT_DIR}/bin:/opt/homebrew/bin:/usr/local/bin:${PATH}"
 export HF_HUB_OFFLINE=1
 export TRANSFORMERS_OFFLINE=1
 export PYTHONPATH="$SCRIPT_DIR"
-export QWEN_ASR_MODEL="${SCRIPT_DIR}/models/Qwen3-ASR-0.6B"
+export QWEN_ASR_BACKEND="${QWEN_ASR_BACKEND:-auto}"
+if [[ -z "${QWEN_ASR_MODEL:-}" ]]; then
+  if [[ "$QWEN_ASR_BACKEND" == "mlx" ]] || \
+     [[ "$QWEN_ASR_BACKEND" == "auto" && "$(uname -s)-$(uname -m)" == "Darwin-arm64" ]]; then
+    export QWEN_ASR_MODEL="${SCRIPT_DIR}/models/Qwen3-ASR-0.6B-MLX-4bit"
+  else
+    export QWEN_ASR_MODEL="${SCRIPT_DIR}/models/Qwen3-ASR-0.6B"
+  fi
+fi
 
 PYTHON="python3"
 if [[ -x "$SCRIPT_DIR/.venv/bin/python" ]]; then

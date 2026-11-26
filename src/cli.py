@@ -7,10 +7,17 @@ import sys
 from contextlib import redirect_stdout
 from pathlib import Path
 
-from src.asr.qwen_engine import QwenAsrEngine
+from src.asr.backend import create_engine
 from src.audio.ffmpeg_dsp import FfmpegDspEnhancer
 from src.pipeline.runner import Pipeline
 from src.runtime.offline import enable_offline_mode
+
+PROGRESS_MESSAGES = {"开始转写", "人声增强", "音频直通", "转码中", "整段解析", "加载模型...", "模型已加载"}
+
+
+def print_progress(message: str) -> None:
+    if message in PROGRESS_MESSAGES or message.startswith(("切成 ", "开始处理第 ", "第 ")):
+        print(message, file=sys.stderr, flush=True)
 
 
 def arguments(argv: list[str] | None) -> argparse.Namespace:
@@ -28,14 +35,14 @@ def arguments(argv: list[str] | None) -> argparse.Namespace:
 def main(argv: list[str] | None = None) -> int:
     options = arguments(argv)
     enable_offline_mode()
-    engine = QwenAsrEngine()
+    _backend, engine = create_engine()
     try:
         with redirect_stdout(sys.stderr):
             result = Pipeline(FfmpegDspEnhancer(), engine).run(
                 options.file,
                 language=options.language,
                 enhance=options.enhance,
-                on_progress=lambda message: print(message, file=sys.stderr, flush=True),
+                on_progress=print_progress,
             )
         print(result.text)
         return 0

@@ -17,13 +17,14 @@
 | file | 必须是现有普通文件，按调用者工作目录解释相对路径 |
 | --enhance | on 或 off，默认 on |
 | --language | 默认 auto；可指定模型支持的语言名 |
-| QWEN_ASR_MODEL | 默认项目本地 0.6B，可显式覆盖为其他本地模型 |
+| QWEN_ASR_MODEL | 默认使用当前平台后端的项目本地 0.6B，可显式覆盖为其他本地模型 |
+| QWEN_ASR_BACKEND | 默认 auto；Apple Silicon 选 MLX，其它平台选 torch |
 
 ## 链路
 
 ```text
-tools/transcribe.sh → src.cli 参数校验 → 离线模式
-                  → Pipeline → FfmpegDspEnhancer → QwenAsrEngine
+tools/transcribe.sh → src.cli 参数校验 → 离线模式 → 自动选择 ASR 后端
+                  → Pipeline → FfmpegDspEnhancer → Qwen3-ASR MLX/torch
                   → stdout 最终文本 → 卸载模型 → 退出
 ```
 
