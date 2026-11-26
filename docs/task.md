@@ -21,6 +21,8 @@
   - 轮次1：L1 内嵌转写页，enhance 勾选对应 on/off，忙碌时直接 return 不发第二次请求；<dirs:docs;src;tests;>
 - [x] TASK-008 [2f623ea]: 补启动脚本并跑通 feat-verify check
   - 轮次1：补 web_launch 与装配入口，feat-verify 12 个 AC 锚点完整，L1 不引用 L3/L5；<dirs:docs;src;tests;web_launch.sh;>
+- [x] TASK-009 [2bc5a7e]: 写 tools/setup.sh，在本机补齐 ffmpeg、qwen_asr、torch，并用 --check 验收完备
+  - 轮次1：用 uv 走清华源装包、魔搭拉 0.6B，setup --check 三项就绪；<dirs:docs;src;tests;tools;web_launch.sh;>
 
 ## 远期规划
 - GPU 人声分离

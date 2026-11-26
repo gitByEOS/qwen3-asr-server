@@ -58,3 +58,13 @@ class TestWebPage(unittest.TestCase):
         self.assertIn('enhanceBox.checked ? "on" : "off"', HTML)
         self.assertIn("enhanceState.textContent = data.enhance", HTML)
         self.assertIn('type="checkbox" checked', HTML)
+
+    def test_ac_web_007(self) -> None:
+        html = self._html()
+        self.assertIn('id="drop-zone"', html)
+        self.assertIn("drag-over", HTML)
+        self.assertIn("dataTransfer.files", HTML)
+
+    def test_ac_web_008(self) -> None:
+        self.assertIn("data.missing", HTML)
+        self.assertIn("warning", HTML)

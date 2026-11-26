@@ -5,7 +5,10 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
-from src.audio.ffmpeg_dsp import FILTERS, ffmpeg_args
+from unittest.mock import patch
+
+from src.audio.ffmpeg_dsp import FILTERS, FfmpegDspEnhancer, ffmpeg_args
+from src.protocol.errors import MissingDependencyError
 from src.protocol.states import EnhanceState
 
 
@@ -22,6 +25,23 @@ class TestFilterTable(unittest.TestCase):
         self.assertIn("highpass=f=80", af)
         self.assertIn("afftdn=nf=-25", af)
         self.assertNotIn("ForcedAligner", af)
+
+
+class TestMissingFfmpeg(unittest.TestCase):
+    def test_wav_passthrough_when_ffmpeg_missing(self) -> None:
+        path = Path("a.wav")
+        with patch("src.audio.ffmpeg_dsp.is_ffmpeg_ready", return_value=False):
+            self.assertEqual(FfmpegDspEnhancer().prepare(path, EnhanceState.OFF), path)
+
+    def test_mp3_needs_ffmpeg(self) -> None:
+        with patch("src.audio.ffmpeg_dsp.is_ffmpeg_ready", return_value=False):
+            with self.assertRaises(MissingDependencyError):
+                FfmpegDspEnhancer().prepare(Path("a.mp3"), EnhanceState.OFF)
+
+    def test_enhance_on_needs_ffmpeg(self) -> None:
+        with patch("src.audio.ffmpeg_dsp.is_ffmpeg_ready", return_value=False):
+            with self.assertRaises(MissingDependencyError):
+                FfmpegDspEnhancer().prepare(Path("a.wav"), EnhanceState.ON)
 
 
 if __name__ == "__main__":

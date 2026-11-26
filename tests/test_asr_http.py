@@ -13,6 +13,7 @@ from urllib.request import Request, urlopen
 from src.audio.ffmpeg_dsp import ffmpeg_args
 from src.entry.server import App, make_handler
 from src.pipeline.runner import Pipeline
+from src.protocol.errors import MissingDependencyError
 from src.protocol.states import EnhanceState
 from src.runtime.offline import enable_offline_mode
 from tests.fakes import FakeEngine, MissingCacheLoader
@@ -190,3 +191,57 @@ class HttpCase(unittest.TestCase):
         self.assertEqual(payload["enhance"], "off")
         self.assertNotIn("-af", self.enhancer.last_args)
         self.assertEqual(len(self.engine.calls), 1)
+
+    def test_ac_asr_010(self) -> None:
+        class MissingFfmpeg:
+            def prepare(self, audio_path, enhance):
+                raise MissingDependencyError("需要 ffmpeg")
+
+        app = App(
+            pipeline=Pipeline(MissingFfmpeg(), FakeEngine()),
+            model_id="Qwen/Qwen3-ASR-0.6B",
+            enhancer_name="ffmpeg-dsp",
+        )
+        self.server.shutdown()
+        self.server.server_close()
+        self.server = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(app))
+        self.base = f"http://127.0.0.1:{self.server.server_address[1]}"
+        self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
+        self.thread.start()
+        body, content_type = _multipart({}, {"file": ("a.mp3", b"xxx")})
+        status, payload = self._json("POST", "/api/transcribe", body, {"Content-Type": content_type})
+        self.assertEqual(status, 503)
+        self.assertIn("ffmpeg", payload["error"])
+        status, health = self._json("GET", "/health")
+        self.assertEqual(status, 200)
+
+    def test_ac_asr_011(self) -> None:
+        status, payload = self._json("GET", "/health")
+        self.assertEqual(status, 200)
+        self.assertIn("ffmpeg", payload["capabilities"])
+        self.assertIn("qwen_asr", payload["capabilities"])
+        self.assertIn("torch", payload["capabilities"])
+        self.assertIn("missing", payload)
+
+    def test_ac_asr_012(self) -> None:
+        from unittest.mock import patch
+
+        from src.audio.ffmpeg_dsp import FfmpegDspEnhancer
+
+        with patch("src.audio.ffmpeg_dsp.is_ffmpeg_ready", return_value=False):
+            app = App(
+                pipeline=Pipeline(FfmpegDspEnhancer(), FakeEngine()),
+                model_id="Qwen/Qwen3-ASR-0.6B",
+                enhancer_name="ffmpeg-dsp",
+            )
+            self.server.shutdown()
+            self.server.server_close()
+            self.server = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(app))
+            self.base = f"http://127.0.0.1:{self.server.server_address[1]}"
+            self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
+            self.thread.start()
+            body, content_type = _multipart({"enhance": "off"}, {"file": ("a.wav", b"RIFF")})
+            status, payload = self._json("POST", "/api/transcribe", body, {"Content-Type": content_type})
+        self.assertEqual(status, 200)
+        self.assertTrue(payload["text"])
+        self.assertEqual(payload["enhance"], "off")

@@ -6,11 +6,22 @@ import shutil
 from pathlib import Path
 
 
+EXTRA_BIN_DIRS = (
+    Path(__file__).resolve().parents[2] / "bin",
+    Path("/opt/homebrew/bin"),
+    Path("/usr/local/bin"),
+)
+
+
 def ffmpeg_path() -> Path | None:
     found = shutil.which("ffmpeg")
-    if not found:
-        return None
-    return Path(found)
+    if found:
+        return Path(found)
+    for folder in EXTRA_BIN_DIRS:
+        candidate = folder / "ffmpeg"
+        if candidate.is_file():
+            return candidate
+    return None
 
 
 def is_ffmpeg_ready() -> bool:

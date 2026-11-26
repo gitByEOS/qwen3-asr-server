@@ -7,3 +7,7 @@ class OfflineError(Exception):
 
 class BusyError(Exception):
     """已有转写在进行。"""
+
+
+class MissingDependencyError(Exception):
+    """缺 ffmpeg / qwen-asr 等，进程继续、请求失败。"""

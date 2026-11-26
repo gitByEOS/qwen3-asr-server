@@ -15,6 +15,8 @@
 | AC-WEB-003 | F-WEB-003 | 忙碌状态下再次提交不调用 fetch | 单元测试 | `tests/test_web_page.py` | `test_ac_web_003` |
 | AC-WEB-004 | F-WEB-004 | 响应含 error 时结果区域展示该 error，不展示成功文本 | 单元测试 | `tests/test_web_page.py` | `test_ac_web_004` |
 | AC-WEB-006 | F-WEB-006 | 开关关闭时请求字段 enhance=off，打开时为 on，结果区展示响应中的 enhance | 单元测试 | `tests/test_web_page.py` | `test_ac_web_006` |
+| AC-WEB-007 | F-WEB-007 | 页面含 drop-zone，脚本处理 drag-over 与 dataTransfer.files | 单元测试 | `tests/test_web_page.py` | `test_ac_web_007` |
+| AC-WEB-008 | F-WEB-008 | 页面脚本读取 health.missing 并展示 warning | 单元测试 | `tests/test_web_page.py` | `test_ac_web_008` |
 
 ## 执行记录
 
@@ -25,3 +27,5 @@
 | 2026-11-26 | AC-WEB-003 | 通过 | `python3 -m unittest tests.test_web_page` |
 | 2026-11-26 | AC-WEB-004 | 通过 | `python3 -m unittest tests.test_web_page` |
 | 2026-11-26 | AC-WEB-006 | 通过 | `python3 -m unittest tests.test_web_page` |
+| 2026-11-26 | AC-WEB-007 | 通过 | `python3 -m unittest tests.test_web_page` |
+| 2026-11-26 | AC-WEB-008 | 通过 | `python3 -m unittest tests.test_web_page` |

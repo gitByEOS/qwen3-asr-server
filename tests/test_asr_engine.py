@@ -5,8 +5,11 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
-from src.asr.qwen_engine import QwenAsrEngine, extract_text
-from src.protocol.errors import OfflineError
+import sys
+from unittest.mock import patch
+
+from src.asr.qwen_engine import QwenAsrEngine, extract_text, load_qwen_from_cache
+from src.protocol.errors import MissingDependencyError, OfflineError
 from tests.fakes import FakeLoader, MissingCacheLoader
 
 
@@ -37,6 +40,11 @@ class TestQwenAsrEngine(unittest.TestCase):
         engine = QwenAsrEngine(load_model=MissingCacheLoader())
         with self.assertRaises(OfflineError):
             engine.transcribe(Path("a.wav"), "zh")
+
+    def test_missing_qwen_asr_is_dependency(self) -> None:
+        with patch.dict(sys.modules, {"qwen_asr": None}):
+            with self.assertRaises(MissingDependencyError):
+                load_qwen_from_cache("Qwen/Qwen3-ASR-0.6B")
 
 
 if __name__ == "__main__":

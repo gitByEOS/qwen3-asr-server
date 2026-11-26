@@ -12,9 +12,9 @@ from urllib.parse import urlparse
 from src.entry.multipart import parse_multipart
 from src.entry.page import HTML
 from src.pipeline.runner import Pipeline
-from src.protocol.errors import BusyError, OfflineError
+from src.protocol.errors import BusyError, MissingDependencyError, OfflineError
 from src.protocol.states import EnhanceState
-from src.runtime.ffmpeg import is_ffmpeg_ready
+from src.runtime.capabilities import missing_of, probe
 from src.runtime.offline import is_offline
 
 MAX_UPLOAD_BYTES = 50 * 1024 * 1024
@@ -36,11 +36,14 @@ def make_handler(app: App):
         def do_GET(self) -> None:
             path = urlparse(self.path).path
             if path == "/health":
+                capabilities = probe()
                 self._json(200, {
-                    "ok": is_ffmpeg_ready(),
+                    "ok": True,
                     "model": app.model_id,
                     "enhancer": app.enhancer_name,
                     "offline": is_offline(),
+                    "capabilities": capabilities,
+                    "missing": missing_of(capabilities),
                 })
                 return
             if path in ("/", ""):
@@ -98,8 +101,11 @@ def make_handler(app: App):
             except BusyError as error:
                 self._json(429, {"error": str(error)})
                 return
-            except OfflineError as error:
+            except (OfflineError, MissingDependencyError) as error:
                 self._json(503, {"error": str(error)})
+                return
+            except Exception as error:
+                self._json(500, {"error": str(error)})
                 return
             self._json(200, {
                 "text": result.text,

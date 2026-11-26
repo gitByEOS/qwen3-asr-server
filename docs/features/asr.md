@@ -19,6 +19,9 @@
 | ✓ | F-ASR-005 | 已有转写进行中时第二次 POST /api/transcribe 得到 429 与 JSON `error` | D-ASR-001 |
 | ✓ | F-ASR-008 | enhance 缺省或为 on 时，L3 对输入执行 highpass+afftdn 后再交给 L5，响应 `enhance` 为 on，health.enhancer 为 ffmpeg-dsp | D-ASR-001 |
 | ✓ | F-ASR-009 | enhance 为 off 时，L3 只转 16kHz 单声道、不接高通和降噪，L5 仍被调用一次，响应 `enhance` 为 off | D-ASR-001 |
+| ✓ | F-ASR-010 | 缺 ffmpeg 或 qwen-asr 时 POST /api/transcribe 返回 503 JSON error，进程继续，GET /health 仍 200 | D-ASR-001 |
+| ✓ | F-ASR-011 | GET /health 的 JSON 含 capabilities.ffmpeg、capabilities.qwen_asr、capabilities.torch 与 missing 列表 | D-ASR-001 |
+| ✓ | F-ASR-012 | 缺 ffmpeg 且 enhance=off 时，wav 直通 L5 并返回 200，不 503 | D-ASR-001 |
 
 ## 阻塞延后
 

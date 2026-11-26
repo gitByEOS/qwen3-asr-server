@@ -17,6 +17,9 @@
 | AC-ASR-005 | F-ASR-005 | 第一次转写阻塞期间第二次请求返回 429 且 JSON 含 error | 单元测试 | `tests/test_asr_http.py` | `test_ac_asr_005` |
 | AC-ASR-008 | F-ASR-008 | 未传 enhance 或 enhance=on 时，交给 L5 的音频经过 highpass+afftdn，响应 enhance 为 on | 单元测试 | `tests/test_asr_http.py` | `test_ac_asr_008` |
 | AC-ASR-009 | F-ASR-009 | enhance=off 时，交给 L5 的音频未经 highpass/afftdn，L5 调用次数为 1，响应 enhance 为 off | 单元测试 | `tests/test_asr_http.py` | `test_ac_asr_009` |
+| AC-ASR-010 | F-ASR-010 | 缺 ffmpeg 时 transcribe 返回 503 且 JSON 含 error，随后 health 仍 200 | 单元测试 | `tests/test_asr_http.py` | `test_ac_asr_010` |
+| AC-ASR-011 | F-ASR-011 | health JSON 含 capabilities.ffmpeg、capabilities.qwen_asr、capabilities.torch 与 missing | 单元测试 | `tests/test_asr_http.py` | `test_ac_asr_011` |
+| AC-ASR-012 | F-ASR-012 | 无 ffmpeg 且 enhance=off 的 wav 返回 200 且 JSON 含 text | 单元测试 | `tests/test_asr_http.py` | `test_ac_asr_012` |
 
 ## 执行记录
 
@@ -29,3 +32,6 @@
 | 2026-11-26 | AC-ASR-005 | 通过 | `python3 -m unittest tests.test_asr_http` |
 | 2026-11-26 | AC-ASR-008 | 通过 | `python3 -m unittest tests.test_asr_http` |
 | 2026-11-26 | AC-ASR-009 | 通过 | `python3 -m unittest tests.test_asr_http` |
+| 2026-11-26 | AC-ASR-010 | 通过 | `python3 -m unittest tests.test_asr_http` |
+| 2026-11-26 | AC-ASR-011 | 通过 | `python3 -m unittest tests.test_asr_http` |
+| 2026-11-26 | AC-ASR-012 | 通过 | `python3 -m unittest tests.test_asr_http` |

@@ -6,6 +6,7 @@ import os
 import unittest
 from unittest.mock import patch
 
+from src.runtime.capabilities import probe
 from src.runtime.ffmpeg import is_ffmpeg_ready
 from src.runtime.offline import HF_OFFLINE_ENVS, enable_offline_mode, is_offline
 
@@ -30,12 +31,22 @@ class TestOffline(unittest.TestCase):
 
 class TestFfmpeg(unittest.TestCase):
     def test_missing_ffmpeg_is_not_ready(self) -> None:
-        with patch("src.runtime.ffmpeg.shutil.which", return_value=None):
+        with patch("src.runtime.ffmpeg.shutil.which", return_value=None), patch(
+            "src.runtime.ffmpeg.EXTRA_BIN_DIRS", ()
+        ):
             self.assertFalse(is_ffmpeg_ready())
 
     def test_found_ffmpeg_is_ready(self) -> None:
         with patch("src.runtime.ffmpeg.shutil.which", return_value="/usr/bin/ffmpeg"):
             self.assertTrue(is_ffmpeg_ready())
+
+
+class TestCapabilities(unittest.TestCase):
+    def test_probe_keys(self) -> None:
+        capabilities = probe()
+        self.assertIn("ffmpeg", capabilities)
+        self.assertIn("qwen_asr", capabilities)
+        self.assertIn("torch", capabilities)
 
 
 if __name__ == "__main__":

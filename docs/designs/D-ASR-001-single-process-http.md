@@ -24,7 +24,9 @@ result = pipeline.run(audio_path, language="auto", enhance="on")
 # result.text  result.language  result.enhance
 
 # GET  /health
-#   {"ok": true, "model": "Qwen/Qwen3-ASR-0.6B", "enhancer": "ffmpeg-dsp", "offline": true}
+#   {"ok": true, "model": "Qwen/Qwen3-ASR-0.6B", "enhancer": "ffmpeg-dsp", "offline": true,
+#    "capabilities": {"ffmpeg": false, "qwen_asr": false, "torch": false},
+#    "missing": ["ffmpeg", "qwen_asr", "torch"]}
 # POST /api/transcribe  multipart: file, language, enhance
 #   enhance 缺省为 on；只接受 on / off
 #   {"text": "...", "language": "zh", "enhance": "on"}
@@ -69,8 +71,9 @@ L6 运行时 src/runtime
 ```text
 上传文件 + enhance
  → L1 校验 → L2 单飞
- → L3 ffmpeg（on: highpass+afftdn；off: 只转码）
- → L5 转写 → {text, language, enhance}
+ → L3 有 ffmpeg：转码（on 再滤镜）；无 ffmpeg：wav+off 直通，否则 503
+ → L5 有 qwen-asr：转写；无：503
+ → {text, language, enhance} 或缺包 JSON error
 ```
 
 ### 关键设计点
@@ -87,6 +90,8 @@ L6 运行时 src/runtime
 | 返回体 | `text`、`language`、`enhance` | 回显开关，无时间轴 |
 | 默认模型 | `Qwen/Qwen3-ASR-0.6B` | Mac 先跑通 |
 | 离线 | 启动即 `HF_HUB_OFFLINE=1` | 缺缓存直接报错 |
+| 缺包不崩 | L6 只探活不导入；缺项进 health.missing；请求 503 | 进程要继续给人看网页 |
+| 网页拖入 | 文档级 dragenter/drop 写入 file input | 参考 videoya 拖入区 |
 | 单飞 | L2 同时只跑一条 | 模型占内存 |
 | 不引用 learn | `learn/` 只读 | 禁止 import whisperjav |
 
@@ -111,7 +116,8 @@ L6 运行时 src/runtime
 | 不变量 | 转 16kHz 与可选增强在同一次 ffmpeg 中完成 |
 | 不变量 | 一次 `pipeline.run` 只调用一次 L5 |
 | 不变量 | 同一时刻最多一个 `pipeline.run` |
-| 约束 | 上传上限 50MB；缺 ffmpeg 或缺缓存则拒绝转写 |
+| 约束 | 上传上限 50MB；缺包或缺缓存 503，进程不退出 |
+| 约束 | 无 ffmpeg 时仅 wav + enhance=off 可直通 |
 | 边界条件 | 空文件、非音视频、超限、非法 enhance 一律 4xx JSON `{"error": "..."}` |
 | 隔离 | L1 不得 import L5；L5 不得 import L3；测试按层注入替身 |
 
@@ -122,3 +128,4 @@ L6 运行时 src/runtime
 | 2026-11-26 | 修订 | 去掉对齐器与 SRT；L1–L6 隔离；L3 增强 |
 | 2026-11-26 | 修订 | 增加 enhance on/off；禁止双次 ASR |
 | 2026-11-26 | 待用户确认实现 | 确认前不写实现代码 |
+| 2026-11-26 | 修订 | 缺包不崩、health 探活、网页拖入 |
