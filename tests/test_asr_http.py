@@ -223,6 +223,8 @@ class HttpCase(unittest.TestCase):
         self.assertIn("ffmpeg", payload["capabilities"])
         self.assertIn("qwen_asr", payload["capabilities"])
         self.assertIn("torch", payload["capabilities"])
+        self.assertIn("qwen_asr_mlx", payload["capabilities"])
+        self.assertEqual(payload["backend"], "torch")
         self.assertIn("missing", payload)
 
     def test_ac_asr_012(self) -> None:

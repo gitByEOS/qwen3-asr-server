@@ -27,6 +27,8 @@
   - 轮次1：刷新后用 health.busy 和日志回放接上转写，文件不能恢复；<dirs:README.md;docs;src;tests;>
 - [x] TASK-011 [8131d28]: 按 D-ASR-003 先扫静音、归并、切分后再解析
   - 轮次1：先扫静音再归并，短间隔留在人声段里，按段解析并拼接；<dirs:docs;src;tests;>
+- [x] TASK-012: 补齐 Apple Silicon MLX 4-bit 推理支持
+  - 轮次1：Darwin arm64 自动选择 MLX，从魔搭下载 aufklarer 4-bit 模型；其它平台保持 torch；<dirs:docs;src;tests;tools;web_launch.sh;>
 
 ## 远期规划
 - GPU 人声分离

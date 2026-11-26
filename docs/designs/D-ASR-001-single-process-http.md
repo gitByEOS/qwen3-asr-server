@@ -24,9 +24,10 @@ result = pipeline.run(audio_path, language="auto", enhance="on")
 # result.text  result.language  result.enhance
 
 # GET  /health
-#   {"ok": true, "model": "Qwen/Qwen3-ASR-0.6B", "enhancer": "ffmpeg-dsp", "offline": true,
-#    "capabilities": {"ffmpeg": false, "qwen_asr": false, "torch": false},
-#    "missing": ["ffmpeg", "qwen_asr", "torch"]}
+#   {"ok": true, "model": ".../Qwen3-ASR-0.6B-MLX-4bit", "backend": "mlx",
+#    "enhancer": "ffmpeg-dsp", "offline": true,
+#    "capabilities": {"ffmpeg": true, "qwen_asr_mlx": true,
+#                     "qwen_asr": false, "torch": false}, "missing": []}
 # POST /api/transcribe  multipart: file, language, enhance
 #   enhance 缺省为 on；只接受 on / off
 #   {"text": "...", "language": "zh", "enhance": "on"}
@@ -56,7 +57,8 @@ L4 协议 src/protocol
   不依赖其它层
        ▼
 L5 ASR src/asr
-  Qwen3ASRModel.transcribe  文本 only
+  Apple Silicon: Qwen3-ASR 4-bit MLX；其它平台: Qwen3-ASR torch
+  auto 按 Darwin/arm64 选后端，文本 only
   只依赖 L4、L6
        ▼
 L6 运行时 src/runtime
@@ -72,7 +74,7 @@ L6 运行时 src/runtime
 上传文件 + enhance
  → L1 校验 → L2 单飞（on_progress → SSE /api/events）
  → L3 有 ffmpeg：转码（on 再滤镜）；无 ffmpeg：wav+off 直通，否则 503
- → L5 有 qwen-asr：转写；无：503
+ → L5 按平台使用 Qwen3-ASR MLX 或 torch 后端；当前后端缺依赖时 503
  → {text, language, enhance} 或缺包 JSON error
 ```
 
@@ -88,7 +90,9 @@ L6 运行时 src/runtime
 | 人声增强 | L3 `ffmpeg-dsp`，不占 GPU | 要增强但不抢 ASR 显存 |
 | 单进程 | L1 网页与 API 同进程 | 没有现成模型 HTTP |
 | 返回体 | `text`、`language`、`enhance` | 回显开关，无时间轴 |
-| 默认模型 | `Qwen/Qwen3-ASR-0.6B` | Mac 先跑通 |
+| 通用模型 | `Qwen/Qwen3-ASR-0.6B` | 非 Apple Silicon 平台保持原 torch 路径 |
+| M 芯片模型 | `aufklarer/Qwen3-ASR-0.6B-MLX-4bit` | 4-bit 约 680MB，使用统一内存与 Metal |
+| 后端选择 | `auto` 在 Darwin arm64 选 MLX，其它平台选 torch；环境变量可覆盖 | M 芯片无需安装 torch，旧平台不受影响 |
 | 离线 | 启动即 `HF_HUB_OFFLINE=1` | 缺缓存直接报错 |
 | 缺包不崩 | L6 只探活不导入；缺项进 health.missing；请求 503 | 进程要继续给人看网页 |
 | 网页拖入 | 文档级 dragenter/drop 写入 file input | 文件选择和拖入走同一个 input |
@@ -115,6 +119,7 @@ L6 运行时 src/runtime
 | 不变量 | 没有静音切段时，一次运行只解析一次 |
 | 不变量 | 同一时刻最多一个 `pipeline.run` |
 | 约束 | 上传上限 50MB；缺包或缺缓存 503，进程不退出 |
+| 约束 | MLX 后端只加载 setup 下载的本地模型目录，不在请求期间访问网络 |
 | 约束 | 无 ffmpeg 时仅 wav + enhance=off 可直通 |
 | 边界条件 | 空文件、非音视频、超限、非法 enhance 一律 4xx JSON `{"error": "..."}` |
 | 隔离 | L1 不得 import L5；L5 不得 import L3；测试按层注入替身 |

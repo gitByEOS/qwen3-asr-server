@@ -1,19 +1,81 @@
 #!/usr/bin/env bash
-# 用 uv + 清华源装包，用魔搭拉 Qwen3-ASR-0.6B。
+# 用 uv + 清华源装包，用魔搭下载对应平台的 Qwen3-ASR-0.6B。
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 VENV="$ROOT/.venv"
 BIN="$ROOT/bin"
-MODEL_DIR="$ROOT/models/Qwen3-ASR-0.6B"
+TORCH_MODEL_DIR="$ROOT/models/Qwen3-ASR-0.6B"
+MLX_MODEL_DIR="$ROOT/models/Qwen3-ASR-0.6B-MLX-4bit"
+TORCH_MODEL_ID="Qwen/Qwen3-ASR-0.6B"
+MLX_MODEL_ID="aufklarer/Qwen3-ASR-0.6B-MLX-4bit"
 PIP_INDEX_URL="${PIP_INDEX_URL:-https://pypi.tuna.tsinghua.edu.cn/simple}"
 FFMPEG_STATIC_TAG="b6.1.1"
+EXISTING_PYTHON3="$(command -v python3 || true)"
 export PATH="${BIN}:/opt/homebrew/bin:/usr/local/bin:${PATH}"
 
 log() { echo "[setup] $*"; }
 
+selected_backend() {
+  case "${QWEN_ASR_BACKEND:-auto}" in
+    mlx|torch) echo "${QWEN_ASR_BACKEND}" ;;
+    auto)
+      if [[ "$(uname -s)-$(uname -m)" == "Darwin-arm64" ]]; then
+        echo "mlx"
+      else
+        echo "torch"
+      fi
+      ;;
+    *)
+      echo "QWEN_ASR_BACKEND 只接受 auto、mlx、torch" >&2
+      return 2
+      ;;
+  esac
+}
+
+model_dir() {
+  if [[ "$(selected_backend)" == "mlx" ]]; then
+    echo "$MLX_MODEL_DIR"
+  else
+    echo "$TORCH_MODEL_DIR"
+  fi
+}
+
+model_id() {
+  if [[ "$(selected_backend)" == "mlx" ]]; then
+    echo "$MLX_MODEL_ID"
+  else
+    echo "$TORCH_MODEL_ID"
+  fi
+}
+
+python_at_least_312() {
+  "$1" -c 'import sys; raise SystemExit(sys.version_info < (3, 12))' >/dev/null 2>&1
+}
+
+mlx_python() {
+  local candidate path
+  if [[ -n "$EXISTING_PYTHON3" ]] && python_at_least_312 "$EXISTING_PYTHON3"; then
+    echo "$EXISTING_PYTHON3"
+    return
+  fi
+  for candidate in python3.14 python3.13 python3.12; do
+    path="$(command -v "$candidate" || true)"
+    if [[ -n "$path" ]] && python_at_least_312 "$path"; then
+      echo "$path"
+      return
+    fi
+  done
+  uv python install 3.12 >/dev/null
+  uv python find 3.12
+}
+
 base_python() {
+  if [[ "$(selected_backend)" == "mlx" ]]; then
+    mlx_python
+    return
+  fi
   if command -v python3.12 >/dev/null; then
     command -v python3.12
     return
@@ -66,37 +128,60 @@ pip_install() {
 }
 
 install_python_packages() {
-  log "清华源安装 torch qwen-asr modelscope"
-  pip_install torch qwen-asr modelscope "numpy<2" "numba<0.61"
+  if [[ "$(selected_backend)" == "mlx" ]]; then
+    log "清华源安装 Qwen3-ASR MLX 推理组件"
+    pip_install "mlx-audio[stt]==0.6.8" modelscope
+  else
+    log "清华源安装 torch qwen-asr modelscope"
+    pip_install torch qwen-asr modelscope "numpy<2" "numba<0.61"
+  fi
 }
 
 ensure_model() {
-  if [[ -f "$MODEL_DIR/config.json" ]]; then
-    return
-  fi
-  log "魔搭下载 Qwen3-ASR-0.6B"
-  mkdir -p "$MODEL_DIR"
-  "$VENV/bin/python" - "$MODEL_DIR" <<'PY'
+  local destination repo_id
+  destination="$(model_dir)"
+  repo_id="$(model_id)"
+  if [[ ! -f "$destination/config.json" ]]; then
+    log "魔搭下载 ${repo_id}"
+    mkdir -p "$destination"
+    "$VENV/bin/python" - "$destination" "$repo_id" <<'PY'
 from pathlib import Path
 import sys
 
 from modelscope.hub.snapshot_download import snapshot_download
 
 destination = Path(sys.argv[1])
-snapshot_download("Qwen/Qwen3-ASR-0.6B", local_dir=str(destination))
+snapshot_download(sys.argv[2], local_dir=str(destination))
 print("模型已落到", destination)
 PY
+  fi
+  if [[ "$(selected_backend)" == "mlx" && ! -f "$destination/preprocessor_config.json" ]]; then
+    log "补 MLX Python 特征提取配置"
+    cp "$ROOT/tools/mlx_preprocessor_config.json" "$destination/preprocessor_config.json"
+  fi
 }
 
 run_check() {
-  PYTHONPATH="$ROOT" "$VENV/bin/python" - <<'PY'
+  local backend destination
+  backend="$(selected_backend)"
+  destination="$(model_dir)"
+  PYTHONPATH="$ROOT" "$VENV/bin/python" - "$backend" "$destination" <<'PY'
+from pathlib import Path
+import sys
+
 from src.runtime.capabilities import missing_of, probe
 
+backend, model_dir = sys.argv[1:]
 capabilities = probe()
 print(capabilities)
-missing = missing_of(capabilities)
+missing = missing_of(capabilities, backend)
 if missing:
     raise SystemExit("缺少：" + "、".join(missing))
+if not (Path(model_dir) / "config.json").is_file():
+    raise SystemExit("缺少本地模型：" + model_dir)
+if backend == "mlx" and not (Path(model_dir) / "preprocessor_config.json").is_file():
+    raise SystemExit("MLX 模型缺少 preprocessor_config.json，请重新运行 setup")
+print("后端：" + backend)
 print("完备")
 PY
 }

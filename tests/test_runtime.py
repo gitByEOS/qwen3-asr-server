@@ -47,6 +47,18 @@ class TestCapabilities(unittest.TestCase):
         self.assertIn("ffmpeg", capabilities)
         self.assertIn("qwen_asr", capabilities)
         self.assertIn("torch", capabilities)
+        self.assertIn("qwen_asr_mlx", capabilities)
+
+    def test_mlx_missing_only_checks_mlx_stack(self) -> None:
+        from src.runtime.capabilities import missing_of
+
+        capabilities = {
+            "ffmpeg": True,
+            "qwen_asr_mlx": True,
+            "qwen_asr": False,
+            "torch": False,
+        }
+        self.assertEqual(missing_of(capabilities, "mlx"), [])
 
 
 if __name__ == "__main__":
