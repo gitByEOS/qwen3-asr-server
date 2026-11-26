@@ -1,7 +1,6 @@
 # 任务计划
 
 ## 未领取
-- [ ] TASK-008: 补启动脚本并跑通 feat-verify check
 
 ## 进行中
 
@@ -20,6 +19,8 @@
   - 轮次1：L1 只提供 health 与 transcribe，AC-ASR 用替身跑通，health 不加载模型；<dirs:docs;src;tests;>
 - [x] TASK-007 [d1f5ea7]: 实现 L1 网页 enhance 开关
   - 轮次1：L1 内嵌转写页，enhance 勾选对应 on/off，忙碌时直接 return 不发第二次请求；<dirs:docs;src;tests;>
+- [x] TASK-008 [2f623ea]: 补启动脚本并跑通 feat-verify check
+  - 轮次1：补 web_launch 与装配入口，feat-verify 12 个 AC 锚点完整，L1 不引用 L3/L5；<dirs:docs;src;tests;web_launch.sh;>
 
 ## 远期规划
 - GPU 人声分离

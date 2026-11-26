@@ -4,7 +4,7 @@
 > 设计方案来源：`docs/designs/`
 > 测试名含 AC 编号是主锚点（`ac_<模块>_<编号>`，Python 带 `test_` 前缀），`feat-verify check` 据此校验失联
 > `@acceptance AC-XX-0xx` 注释为可选补充，仅当测试名无法含编号时用
-> AC-ASR-006、AC-ASR-007 已随时间轴需求放弃，编号作废不得复用
+> 时间轴相关验收编号已作废，不得复用
 
 ## 验收清单
 

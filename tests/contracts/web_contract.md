@@ -4,7 +4,7 @@
 > 设计方案来源：`docs/designs/`
 > 测试名含 AC 编号是主锚点（`ac_<模块>_<编号>`，Python 带 `test_` 前缀），`feat-verify check` 据此校验失联
 > `@acceptance AC-XX-0xx` 注释为可选补充，仅当测试名无法含编号时用
-> AC-WEB-005 已随 SRT 需求放弃，编号作废不得复用
+> SRT 下载相关验收编号已作废，不得复用
 
 ## 验收清单
 
