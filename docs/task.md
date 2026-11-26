@@ -1,7 +1,6 @@
 # 任务计划
 
 ## 未领取
-- [ ] TASK-005: 实现 L2 编排单飞且一次只转写一遍
 - [ ] TASK-006: 实现 L1 HTTP health 与 transcribe 验收
 - [ ] TASK-007: 实现 L1 网页 enhance 开关
 - [ ] TASK-008: 补启动脚本并跑通 feat-verify check
@@ -17,6 +16,8 @@
   - 轮次1：L3 用滤镜表驱动一次 ffmpeg：off 只转 16kHz，on 再接高通和降噪；<dirs:src;tests;>
 - [x] TASK-004 [567bb0a]: 实现 L5 ASR 文本引擎与可注入替身
   - 轮次1：L5 用注入的 load_model 懒加载，模块导入不碰 qwen_asr，缺缓存只抛 OfflineError；<dirs:src;tests;>
+- [x] TASK-005 [3f0d45c]: 实现 L2 编排单飞且一次只转写一遍
+  - 轮次1：L2 非阻塞锁实现单飞，一次 run 只调一次引擎，enhance 原样交给 L3；<dirs:src;tests;>
 
 ## 远期规划
 - GPU 人声分离

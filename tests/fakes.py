@@ -38,3 +38,13 @@ class FakeEnhancer:
     def prepare(self, audio_path: Path, enhance: EnhanceState) -> Path:
         self.calls.append((audio_path, enhance))
         return audio_path
+
+
+class FakeEngine:
+    def __init__(self, text: str = "你好") -> None:
+        self.text = text
+        self.calls: list[tuple[Path, str]] = []
+
+    def transcribe(self, audio_path: Path, language: str) -> tuple[str, str]:
+        self.calls.append((audio_path, language))
+        return self.text, language
