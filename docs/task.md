@@ -1,7 +1,6 @@
 # 任务计划
 
 ## 未领取
-- [ ] TASK-004: 实现 L5 ASR 文本引擎与可注入替身
 - [ ] TASK-005: 实现 L2 编排单飞且一次只转写一遍
 - [ ] TASK-006: 实现 L1 HTTP health 与 transcribe 验收
 - [ ] TASK-007: 实现 L1 网页 enhance 开关
@@ -16,6 +15,8 @@
   - 轮次1：L6 只设 HF 离线环境变量并用 which 探活 ffmpeg，不转码不加载模型；<dirs:src;tests;>
 - [x] TASK-003 [e5903ee]: 实现 L3 预处理滤镜表 on 与 off
   - 轮次1：L3 用滤镜表驱动一次 ffmpeg：off 只转 16kHz，on 再接高通和降噪；<dirs:src;tests;>
+- [x] TASK-004 [567bb0a]: 实现 L5 ASR 文本引擎与可注入替身
+  - 轮次1：L5 用注入的 load_model 懒加载，模块导入不碰 qwen_asr，缺缓存只抛 OfflineError；<dirs:src;tests;>
 
 ## 远期规划
 - GPU 人声分离
