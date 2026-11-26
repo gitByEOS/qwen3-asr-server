@@ -7,6 +7,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
+from src.audio.silence import speech_files
 from src.protocol.errors import MissingDependencyError
 from src.protocol.states import EnhanceState
 from src.runtime.ffmpeg import is_ffmpeg_ready
@@ -38,15 +39,23 @@ def ffmpeg_args(source: Path, destination: Path, enhance: EnhanceState) -> list[
 
 
 class FfmpegDspEnhancer:
-    def prepare(self, audio_path: Path, enhance: EnhanceState) -> Path:
+    def prepare(self, audio_path: Path, enhance: EnhanceState) -> list[Path]:
         source = Path(audio_path)
         if is_ffmpeg_ready():
-            return self._run_ffmpeg(source, enhance)
+            rendered = self._run_ffmpeg(source, enhance)
+            try:
+                pieces = speech_files(rendered)
+            except Exception:
+                rendered.unlink(missing_ok=True)
+                raise
+            if rendered not in pieces:
+                rendered.unlink(missing_ok=True)
+            return pieces
         if enhance is EnhanceState.ON:
             raise MissingDependencyError("人声增强需要 ffmpeg")
         if source.suffix.lower() not in WAV_SUFFIXES:
             raise MissingDependencyError("非 wav 需要 ffmpeg")
-        return source
+        return [source]
 
     def _run_ffmpeg(self, source: Path, enhance: EnhanceState) -> Path:
         fd, name = tempfile.mkstemp(suffix=".wav")
@@ -55,5 +64,6 @@ class FfmpegDspEnhancer:
         command = ffmpeg_args(source, destination, enhance)
         completed = subprocess.run(command, capture_output=True, text=True)
         if completed.returncode != 0:
+            destination.unlink(missing_ok=True)
             raise RuntimeError(completed.stderr.strip() or "ffmpeg 转码失败")
         return destination

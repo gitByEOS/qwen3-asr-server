@@ -25,6 +25,8 @@
   - 轮次1：用 uv 走清华源装包、魔搭拉 0.6B，setup --check 三项就绪；<dirs:docs;src;tests;tools;web_launch.sh;>
 - [x] TASK-010 [cb3c4bf]: 写刷新后网页与后端协同设计，并实现状态同步
   - 轮次1：刷新后用 health.busy 和日志回放接上转写，文件不能恢复；<dirs:README.md;docs;src;tests;>
+- [x] TASK-011 [8131d28]: 按 D-ASR-003 先扫静音、归并、切分后再解析
+  - 轮次1：先扫静音再归并，短间隔留在人声段里，按段解析并拼接；<dirs:docs;src;tests;>
 
 ## 远期规划
 - GPU 人声分离
@@ -32,7 +34,6 @@
 - 默认 1.7B
 
 ## 确认不做
-- ForcedAligner 与 SRT
-- 一次请求双次 ASR
-- 服务内 CER
-- import learn/whisperjav
+- 对齐与字幕文件
+- 一次请求把同一段识别两遍
+- 服务内准确率分数

@@ -20,10 +20,21 @@ def load_qwen_from_cache(model_id: str):
     """只读本地缓存。"""
     try:
         from qwen_asr import Qwen3ASRModel
+        from transformers import GenerationConfig
     except ImportError as error:
         raise MissingDependencyError("需要 qwen-asr") from error
+    greedy = GenerationConfig(
+        do_sample=False,
+        temperature=1.0,
+        eos_token_id=[151643, 151645],
+        pad_token_id=151643,
+    )
     try:
-        return Qwen3ASRModel.from_pretrained(model_id, local_files_only=True)
+        return Qwen3ASRModel.from_pretrained(
+            model_id,
+            local_files_only=True,
+            generation_config=greedy,
+        )
     except ImportError as error:
         raise MissingDependencyError("需要 qwen-asr 依赖") from error
     except Exception as error:
@@ -59,6 +70,29 @@ def text_after_tag(raw: str) -> str:
     return raw.split(ASR_TEXT_TAG, 1)[1].strip()
 
 
+def _quiet_generation(model) -> None:
+    nodes = []
+    if model is not None:
+        nodes.append(model)
+        thinker = getattr(model, "thinker", None)
+        if thinker is not None:
+            nodes.append(thinker)
+    for node in nodes:
+        config = getattr(node, "generation_config", None)
+        if config is None:
+            continue
+        if config.do_sample is False and config.temperature not in (None, 1.0):
+            config.temperature = 1.0
+        if config.pad_token_id is None:
+            eos = config.eos_token_id
+            if isinstance(eos, (list, tuple)) and eos:
+                config.pad_token_id = eos[0]
+            elif eos is not None:
+                config.pad_token_id = eos
+            else:
+                config.pad_token_id = 151643
+
+
 def forced_language(language: str | None) -> str | None:
     if language is None or language.strip() in ("", "auto"):
         return None
@@ -72,14 +106,18 @@ class QwenAsrEngine:
         self.model = None
         self.load_count = 0
 
-    def transcribe(self, audio_path: Path, language: str = "auto", on_partial=None) -> tuple[str, str]:
+    def transcribe(self, audio_path: Path, language: str = "auto", on_partial=None, on_status=None) -> tuple[str, str]:
+        status = on_status or (lambda _message: None)
         if self.model is None:
+            status("加载模型")
             self.model = self._load_model(self.model_id)
             self.load_count += 1
+            status("模型已加载")
         inner = getattr(self.model, "model", None)
+        _quiet_generation(inner)
         original = getattr(inner, "generate", None) if on_partial is not None else None
         if original is not None:
-            inner.generate = self._streaming_generate(original, on_partial)
+            inner.generate = self._streaming_generate(original, on_partial, status)
         try:
             raw = self.model.transcribe(str(audio_path), language=forced_language(language))
         finally:
@@ -88,7 +126,7 @@ class QwenAsrEngine:
         text, detected = unpack_result(raw)
         return text, detected or language
 
-    def _streaming_generate(self, original, on_partial):
+    def _streaming_generate(self, original, on_partial, on_status):
         tokenizer = self.model.processor.tokenizer
         carried = {"text": ""}
 
@@ -110,7 +148,11 @@ class QwenAsrEngine:
             thread = threading.Thread(target=run)
             thread.start()
             pieces: list[str] = []
+            heard = False
             for piece in streamer:
+                if not heard:
+                    heard = True
+                    on_status("正在出字...")
                 pieces.append(piece)
                 shown = carried["text"] + text_after_tag("".join(pieces))
                 if shown:

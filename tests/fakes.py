@@ -35,9 +35,9 @@ class FakeEnhancer:
     def __init__(self) -> None:
         self.calls: list[tuple[Path, EnhanceState]] = []
 
-    def prepare(self, audio_path: Path, enhance: EnhanceState) -> Path:
+    def prepare(self, audio_path: Path, enhance: EnhanceState) -> list[Path]:
         self.calls.append((audio_path, enhance))
-        return audio_path
+        return [audio_path]
 
 
 class FakeEngine:
@@ -47,7 +47,7 @@ class FakeEngine:
         self.model = None
         self.release_count = 0
 
-    def transcribe(self, audio_path: Path, language: str, on_partial=None) -> tuple[str, str]:
+    def transcribe(self, audio_path: Path, language: str, on_partial=None, on_status=None) -> tuple[str, str]:
         self.calls.append((audio_path, language))
         if self.model is None:
             self.model = FakeModel()

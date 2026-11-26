@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import os
+import tempfile
 import threading
-import time
 import unittest
+import wave
 from pathlib import Path
 
-from src.pipeline.runner import Pipeline
+from src.pipeline.runner import Pipeline, piece_seconds
 from src.protocol.errors import BusyError
 from src.protocol.states import EnhanceState
 from tests.fakes import FakeEngine, FakeEnhancer
@@ -18,10 +20,10 @@ class BlockingEnhancer:
         self.started = threading.Event()
         self.release = threading.Event()
 
-    def prepare(self, audio_path: Path, enhance: EnhanceState) -> Path:
+    def prepare(self, audio_path: Path, enhance: EnhanceState) -> list[Path]:
         self.started.set()
         self.release.wait(timeout=2)
-        return audio_path
+        return [audio_path]
 
 
 class TestPipeline(unittest.TestCase):
@@ -72,8 +74,38 @@ class TestPipeline(unittest.TestCase):
         pipeline = Pipeline(FakeEnhancer(), FakeEngine())
         result = pipeline.run(Path("a.wav"), on_progress=notes.append)
         self.assertIn("开始转写", notes)
-        self.assertIn("转写中", notes)
+        self.assertIn("转码中", notes)
+        self.assertIn("开始处理第 1/1 段，时长 0 s", notes)
         self.assertEqual(notes[-1], result.text)
+
+    def test_render_removed_source_kept(self) -> None:
+        source_fd, source_name = tempfile.mkstemp(suffix=".wav")
+        render_fd, render_name = tempfile.mkstemp(suffix=".wav")
+        os.close(source_fd)
+        os.close(render_fd)
+        source = Path(source_name)
+        render = Path(render_name)
+
+        class Split:
+            def prepare(self, audio_path: Path, enhance: EnhanceState) -> list[Path]:
+                return [audio_path, render]
+
+        try:
+            Pipeline(Split(), FakeEngine()).run(source)
+            self.assertTrue(source.exists())
+            self.assertFalse(render.exists())
+        finally:
+            source.unlink(missing_ok=True)
+            render.unlink(missing_ok=True)
+
+    def test_piece_seconds_reads_wav(self) -> None:
+        with tempfile.NamedTemporaryFile(suffix=".wav") as handle:
+            with wave.open(handle.name, "wb") as target:
+                target.setnchannels(1)
+                target.setsampwidth(2)
+                target.setframerate(16000)
+                target.writeframes(b"\x00\x00" * 16000)
+            self.assertEqual(piece_seconds(Path(handle.name)), "1")
 
 
 if __name__ == "__main__":

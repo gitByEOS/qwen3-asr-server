@@ -33,8 +33,8 @@ class TestTranscribeResult(unittest.TestCase):
 class TestSpeechEnhancerProtocol(unittest.TestCase):
     def test_prepare_signature(self) -> None:
         class Dummy:
-            def prepare(self, audio_path: Path, enhance: EnhanceState) -> Path:
-                return audio_path
+            def prepare(self, audio_path: Path, enhance: EnhanceState) -> list[Path]:
+                return [audio_path]
 
         self.assertIsInstance(Dummy(), SpeechEnhancer)
 

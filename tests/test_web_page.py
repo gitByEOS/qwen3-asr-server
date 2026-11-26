@@ -90,3 +90,6 @@ class TestWebPage(unittest.TestCase):
         events = HTML.split("events.onmessage")[1].split('form.addEventListener("submit"')[0]
         self.assertIn("data.text", events)
         self.assertIn("result.textContent = data.text", events)
+        self.assertNotIn("result.textContent = data.log", events)
+        submit = HTML.split('form.addEventListener("submit"')[1]
+        self.assertIn('result.textContent = "等待出字..."', submit)

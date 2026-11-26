@@ -101,6 +101,7 @@ HTML = r"""<!doctype html>
     }
 
     let busy = false;
+    let gotText = false;
     let dragDepth = 0;
 
     function setBusy(on) {
@@ -113,7 +114,10 @@ HTML = r"""<!doctype html>
       try {
         const data = JSON.parse(event.data);
         if (typeof data.busy === "boolean") setBusy(data.busy);
-        if (data.text) result.textContent = data.text;
+        if (data.text) {
+          gotText = true;
+          result.textContent = data.text;
+        }
         appendLog(data.log || "");
       } catch (error) {
         appendLog(event.data);
@@ -183,9 +187,10 @@ HTML = r"""<!doctype html>
         return;
       }
       busy = true;
+      gotText = false;
       submit.disabled = true;
-      status.textContent = "转写中";
-      result.textContent = "转写中";
+      status.textContent = "转码中";
+      result.textContent = "等待出字...";
       enhanceState.textContent = "";
       appendLog("提交 " + file.name);
       const enhance = enhanceBox.checked ? "on" : "off";

@@ -22,11 +22,12 @@
 | ✓ | F-ASR-010 | 缺 ffmpeg 或 qwen-asr 时 POST /api/transcribe 返回 503 JSON error，进程继续，GET /health 仍 200 | D-ASR-001 |
 | ✓ | F-ASR-011 | GET /health 的 JSON 含 capabilities.ffmpeg、capabilities.qwen_asr、capabilities.torch 与 missing 列表 | D-ASR-001 |
 | ✓ | F-ASR-012 | 缺 ffmpeg 且 enhance=off 时，wav 直通 L5 并返回 200，不 503 | D-ASR-001 |
-| ✓ | F-ASR-013 | 心跳连续 5 次且期间无 transcribe 时卸载模型；再次转写会重新加载 | D-ASR-001 |
+| ✓ | F-ASR-013 | 心跳连续 5 次且期间无 transcribe 时卸载模型；再次转写会重新加载 | D-ASR-003 |
 | ✓ | F-ASR-014 | 转写过程通过 on_progress 依次回传进度，并在结束时回传转写文本 | D-ASR-001 |
 | ✓ | F-ASR-015 | 转写进行中 GET /health 的 busy 为 true，结束后为 false | D-ASR-002 |
 | ✓ | F-ASR-016 | 新连接 GET /api/events 先收到订阅前已发出的日志 | D-ASR-002 |
 | ✓ | F-ASR-017 | 生成原文里还没有正文标记时不交出文本，出现标记后交出标记后面的字 | D-ASR-002 |
+| ✓ | F-ASR-018 | 相邻原子段装箱后每组贴近 30 秒，组内气口仍留在这段音频里 | D-ASR-003 |
 
 ## 阻塞延后
 
@@ -35,14 +36,13 @@
 | 麦克风实时录音 | v1 只做文件上传 | 上传路径验收通过后再加 |
 | 1.7B 默认模型 | Mac 内存优先跑通 0.6B | 用环境变量可换，不改默认 |
 | GPU 人声分离 | 与 ASR 抢显存，违反性能优先 | 用户明确要求再开新 D |
-| 服务内 CER | 无标注文本 | 另备金标后再开评测工具 |
+| 服务内准确率分数 | 无标注文本 | 另备标注文本后再开评测工具 |
 
 ## 明确不做
 
 | 排除事项 | 排除原因 |
 |---|---|
-| 时间轴与 SRT（原 006/007） | 用户改为不要时间戳，编号作废不得复用 |
-| 一次请求跑两遍 ASR | 违反性能优先 |
-| ForcedAligner | 性能优先 |
-| 场景切分 / VAD | 无字幕时间轴 |
+| 时间点与字幕文件（原 006/007） | 用户改为不要时间点，编号作废不得复用 |
+| 一次请求把同一段识别两遍 | 违反性能优先 |
+| 对齐 | 性能优先 |
 | 翻译 | 本仓库不做 |

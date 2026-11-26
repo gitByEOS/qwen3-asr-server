@@ -8,7 +8,14 @@ from pathlib import Path
 import sys
 from unittest.mock import patch
 
-from src.asr.qwen_engine import QwenAsrEngine, extract_text, forced_language, load_qwen_from_cache, text_after_tag
+from src.asr.qwen_engine import (
+    QwenAsrEngine,
+    _quiet_generation,
+    extract_text,
+    forced_language,
+    load_qwen_from_cache,
+    text_after_tag,
+)
 from src.protocol.errors import MissingDependencyError, OfflineError
 from tests.fakes import FakeLoader, MissingCacheLoader
 
@@ -57,6 +64,31 @@ class TestQwenAsrEngine(unittest.TestCase):
         self.assertEqual(text_after_tag("language Chinese"), "")
         self.assertEqual(text_after_tag("language Chinese<asr_text>你好"), "你好")
 
+    def test_greedy_drops_unused_temperature(self) -> None:
+        class OuterConfig:
+            do_sample = False
+            temperature = 0.000001
+            pad_token_id = 151643
+            eos_token_id = [151643, 151645]
+
+        class ThinkerConfig:
+            do_sample = False
+            temperature = 1.0
+            pad_token_id = None
+            eos_token_id = None
+
+        class Thinker:
+            generation_config = ThinkerConfig()
+
+        class Inner:
+            generation_config = OuterConfig()
+            thinker = Thinker()
+
+        inner = Inner()
+        _quiet_generation(inner)
+        self.assertEqual(inner.generation_config.temperature, 1.0)
+        self.assertEqual(inner.thinker.generation_config.pad_token_id, 151643)
+
     def test_missing_cache_is_offline(self) -> None:
         engine = QwenAsrEngine(load_model=MissingCacheLoader())
         with self.assertRaises(OfflineError):
@@ -66,6 +98,29 @@ class TestQwenAsrEngine(unittest.TestCase):
         with patch.dict(sys.modules, {"qwen_asr": None}):
             with self.assertRaises(MissingDependencyError):
                 load_qwen_from_cache("Qwen/Qwen3-ASR-0.6B")
+
+    def test_load_skips_file_temperature(self) -> None:
+        captured: dict = {}
+
+        def from_pretrained(model_id, **kwargs):
+            captured.update(kwargs)
+            return object()
+
+        qwen = type(sys)("qwen_asr")
+        qwen.Qwen3ASRModel = type("M", (), {"from_pretrained": staticmethod(from_pretrained)})
+
+        class GenerationConfig:
+            def __init__(self, **kwargs):
+                self.__dict__.update(kwargs)
+
+        transformers = type(sys)("transformers")
+        transformers.GenerationConfig = GenerationConfig
+        with patch.dict(sys.modules, {"qwen_asr": qwen, "transformers": transformers}):
+            load_qwen_from_cache("local")
+        config = captured["generation_config"]
+        self.assertFalse(config.do_sample)
+        self.assertEqual(config.temperature, 1.0)
+        self.assertEqual(config.pad_token_id, 151643)
 
 
 if __name__ == "__main__":

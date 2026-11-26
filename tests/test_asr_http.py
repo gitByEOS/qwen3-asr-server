@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import socket
 import threading
 import unittest
 from http.server import ThreadingHTTPServer
@@ -11,12 +12,12 @@ from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 from src.audio.ffmpeg_dsp import ffmpeg_args
-from src.entry.server import App, make_handler
+from src.entry.server import App, _run_until_stop, make_handler, serve
 from src.pipeline.runner import Pipeline
 from src.protocol.errors import MissingDependencyError
 from src.protocol.states import EnhanceState
 from src.runtime.offline import enable_offline_mode
-from tests.fakes import FakeEngine, MissingCacheLoader
+from tests.fakes import FakeEngine, FakeEnhancer, MissingCacheLoader
 from src.asr.qwen_engine import QwenAsrEngine
 
 
@@ -43,10 +44,10 @@ class RecordingEnhancer:
         self.last_enhance: EnhanceState | None = None
         self.last_args: list[str] = []
 
-    def prepare(self, audio_path: Path, enhance: EnhanceState) -> Path:
+    def prepare(self, audio_path: Path, enhance: EnhanceState) -> list[Path]:
         self.last_enhance = enhance
         self.last_args = ffmpeg_args(audio_path, Path("out.wav"), enhance)
-        return audio_path
+        return [audio_path]
 
 
 class HttpCase(unittest.TestCase):
@@ -262,7 +263,7 @@ class HttpCase(unittest.TestCase):
                             break
                         chunks.append(line.decode())
                         text = "".join(chunks)
-                        if "转写中" in text and "你好" in text:
+                        if "开始处理第" in text and "你好" in text:
                             got.set()
                             break
             except Exception:
@@ -322,3 +323,35 @@ class HttpCase(unittest.TestCase):
                     break
                 text += line.decode()
         self.assertIn("冷启动加载模型", text)
+
+
+class TestOccupiedPort(unittest.TestCase):
+    def test_occupied_port_exits(self) -> None:
+        held = socket.socket()
+        held.bind(("127.0.0.1", 0))
+        held.listen(1)
+        port = held.getsockname()[1]
+        app = App(
+            pipeline=Pipeline(FakeEnhancer(), FakeEngine()),
+            model_id="Qwen/Qwen3-ASR-0.6B",
+            enhancer_name="ffmpeg-dsp",
+        )
+        with self.assertRaises(SystemExit) as caught:
+            serve(app, host="127.0.0.1", port=port)
+        held.close()
+        self.assertEqual(caught.exception.code, 1)
+
+    def test_ctrl_c_closes(self) -> None:
+        class Stopped:
+            def __init__(self) -> None:
+                self.closed = False
+
+            def serve_forever(self) -> None:
+                raise KeyboardInterrupt
+
+            def server_close(self) -> None:
+                self.closed = True
+
+        server = Stopped()
+        _run_until_stop(server)
+        self.assertTrue(server.closed)

@@ -10,8 +10,8 @@ from src.protocol.states import EnhanceState
 
 @runtime_checkable
 class SpeechEnhancer(Protocol):
-    def prepare(self, audio_path: Path, enhance: EnhanceState) -> Path:
-        """解码为 16kHz 单声道，按开关接滤镜，返回新路径。"""
+    def prepare(self, audio_path: Path, enhance: EnhanceState) -> list[Path]:
+        """解码为 16kHz 单声道，按静音切出人声段。"""
         ...
 
 

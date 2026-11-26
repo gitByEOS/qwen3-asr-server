@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import errno
 import json
 import threading
 import time
@@ -22,7 +23,7 @@ from src.runtime.capabilities import missing_of, probe
 from src.runtime.offline import is_offline
 
 MAX_UPLOAD_BYTES = 50 * 1024 * 1024
-DEFAULT_PORT = 11801
+DEFAULT_PORT = 11868
 HEARTBEAT_SECONDS = 30
 
 
@@ -180,9 +181,25 @@ def make_handler(app: App):
 
 
 def serve(app: App, host: str = "0.0.0.0", port: int = DEFAULT_PORT) -> None:
-    server = ThreadingHTTPServer((host, port), make_handler(app))
+    try:
+        server = ThreadingHTTPServer((host, port), make_handler(app))
+    except OSError as error:
+        if error.errno != errno.EADDRINUSE:
+            raise
+        print(f"端口 {port} 已被占用", flush=True)
+        raise SystemExit(1) from error
+    print(f"启动成功：http://{host}:{port}/", flush=True)
     threading.Thread(target=_idle_watch, args=(app,), daemon=True).start()
-    server.serve_forever()
+    _run_until_stop(server)
+
+
+def _run_until_stop(server: ThreadingHTTPServer) -> None:
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        print("已结束", flush=True)
+    finally:
+        server.server_close()
 
 
 def _idle_watch(app: App, seconds: int = HEARTBEAT_SECONDS) -> None:

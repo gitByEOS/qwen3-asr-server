@@ -21,10 +21,11 @@
 | AC-ASR-011 | F-ASR-011 | health JSON 含 capabilities.ffmpeg、capabilities.qwen_asr、capabilities.torch 与 missing | 单元测试 | `tests/test_asr_http.py` | `test_ac_asr_011` |
 | AC-ASR-012 | F-ASR-012 | 无 ffmpeg 且 enhance=off 的 wav 返回 200 且 JSON 含 text | 单元测试 | `tests/test_asr_http.py` | `test_ac_asr_012` |
 | AC-ASR-013 | F-ASR-013 | 转写后连续 5 次心跳卸载模型；中途再转写则不会在第 4 次心跳卸载 | 单元测试 | `tests/test_pipeline.py` | `test_ac_asr_013` |
-| AC-ASR-014 | F-ASR-014 | on_progress 收到开始/转写中，并在最后收到转写文本 | 单元测试 | `tests/test_pipeline.py` | `test_ac_asr_014` |
+| AC-ASR-014 | F-ASR-014 | on_progress 收到开始、转码中、开始处理第 1 段并带时长，并在最后收到转写文本 | 单元测试 | `tests/test_pipeline.py` | `test_ac_asr_014` |
 | AC-ASR-015 | F-ASR-015 | 转写阻塞期间 health.busy 为 true，结束后为 false | 单元测试 | `tests/test_asr_http.py` | `test_ac_asr_015` |
 | AC-ASR-016 | F-ASR-016 | 订阅前发出的日志会在新的 /api/events 连接里先出现 | 单元测试 | `tests/test_asr_http.py` | `test_ac_asr_016` |
 | AC-ASR-017 | F-ASR-017 | 没有正文标记时交出空串，有标记时只交出标记后的文字 | 单元测试 | `tests/test_asr_engine.py` | `test_ac_asr_017` |
+| AC-ASR-018 | F-ASR-018 | 10 与 12 再加后面三段收成 22 秒和 28 秒；短气口落在组的时间范围内 | 单元测试 | `tests/test_audio.py` | `test_ac_asr_018` |
 
 ## 执行记录
 
@@ -45,3 +46,4 @@
 | 2026-11-26 | AC-ASR-015 | 通过 | `python3 -m unittest tests.test_asr_http` |
 | 2026-11-26 | AC-ASR-016 | 通过 | `python3 -m unittest tests.test_asr_http` |
 | 2026-11-26 | AC-ASR-017 | 通过 | `python3 -m unittest tests.test_asr_engine` |
+| 2026-11-26 | AC-ASR-018 | 通过 | `python3 -m unittest tests.test_audio tests.test_pipeline tests.test_asr_http` |

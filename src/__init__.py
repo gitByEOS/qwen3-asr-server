@@ -1,1 +1,1 @@
-"""qwen3-asr-offline 源码根。"""
+"""qwen3-asr-server 源码根。"""
