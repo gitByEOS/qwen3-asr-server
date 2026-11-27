@@ -100,6 +100,7 @@ L6 运行时 src/runtime
 | 通用模型 | `Qwen/Qwen3-ASR-0.6B` | 非 Apple Silicon 平台保持原 torch 路径 |
 | M 芯片模型 | `aufklarer/Qwen3-ASR-0.6B-MLX-4bit` | 4-bit 约 680MB，使用统一内存与 Metal |
 | 后端选择 | `auto` 在 Darwin arm64 选 MLX，其它平台选 torch；环境变量可覆盖 | M 芯片无需安装 torch，旧平台不受影响 |
+| MLX 生成保护 | 每段默认最多生成 2048 tokens；尾部内容连续重复 8 次时提前结束；结束后关闭生成流并清理上下文，保留模型权重 | 无结束标记或重复解码不能长期占住单飞锁；下一段不继承上一段状态 |
 | 离线 | 启动即 `HF_HUB_OFFLINE=1` | 缺缓存直接报错 |
 | 缺包不崩 | L6 只探活不导入；缺项进 health.missing；请求 503 | 进程要继续给人看网页 |
 | 网页拖入 | 文档级 dragenter/drop 写入 file input | 文件选择和拖入走同一个 input |
@@ -140,6 +141,7 @@ L6 运行时 src/runtime
 | 不变量 | 同一时刻最多一个 `pipeline.run` |
 | 约束 | 上传上限 50MB；缺包或缺缓存 503，进程不退出 |
 | 约束 | MLX 后端只加载 setup 下载的本地模型目录，不在请求期间访问网络 |
+| 约束 | MLX 的 2048 tokens 是每段默认生成上限，不是整个请求的文本上限；正常生成遇到结束标记即停止 |
 | 约束 | 无 ffmpeg 时仅 wav + enhance=off 可直通 |
 | 边界条件 | 空文件、非音视频、超限、非法 enhance 一律 4xx JSON `{"error": "..."}` |
 | 隔离 | L1 不得 import L5；L5 不得 import L3；测试按层注入替身 |
@@ -152,6 +154,7 @@ L6 运行时 src/runtime
 | 2026-11-26 | 修订 | 增加 enhance on/off|
 | 2026-11-26 | 修订 | 缺包不崩、health 探活、网页拖入 |
 | 2026-11-26 | 修订 | SSE 进度日志 |
+| 2026-11-27 | 修订 | MLX 增加生成上限、重复熔断与逐段上下文清理 |
 
 ## 实现偏差与验证范围
 

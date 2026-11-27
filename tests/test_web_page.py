@@ -93,3 +93,22 @@ class TestWebPage(unittest.TestCase):
         self.assertNotIn("result.textContent = data.log", events)
         submit = HTML.split('form.addEventListener("submit"')[1]
         self.assertIn('result.textContent = "等待出字..."', submit)
+
+    def test_submit_clears_previous_logs(self) -> None:
+        submit = HTML.split('form.addEventListener("submit"')[1]
+        before_fetch = submit.split("fetch(")[0]
+        self.assertIn('log.textContent = ""', before_fetch)
+        self.assertLess(
+            before_fetch.index('log.textContent = ""'),
+            before_fetch.index('appendLog("提交 " + file.name)'),
+        )
+
+    def test_to_agent_shows_current_curl_endpoint(self) -> None:
+        self.assertIn("[to-agent]", HTML)
+        self.assertIn('id="agent-curl"', HTML)
+        self.assertIn('file=@/path/to/audio.mp4', HTML)
+        self.assertIn('language=auto', HTML)
+        self.assertIn('enhance=on', HTML)
+        self.assertIn('window.location.origin}${transcribePath}', HTML)
+        self.assertIn('!agentHelp.contains(event.target)', HTML)
+        self.assertIn('agentHelp.open = false', HTML)

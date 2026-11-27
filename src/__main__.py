@@ -18,7 +18,11 @@ def main() -> None:
         enhancer_name="ffmpeg-dsp",
         backend=backend,
     )
-    serve(app, port=int(os.environ.get("WEB_PORT", str(DEFAULT_PORT))))
+    serve(
+        app,
+        host=os.environ.get("WEB_HOST", "0.0.0.0"),
+        port=int(os.environ.get("WEB_PORT", str(DEFAULT_PORT))),
+    )
 
 
 if __name__ == "__main__":

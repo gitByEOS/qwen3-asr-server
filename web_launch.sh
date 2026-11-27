@@ -2,7 +2,9 @@
 set -euo pipefail
 
 WEB_PORT="${WEB_PORT:-11868}"
+WEB_HOST="${WEB_HOST:-0.0.0.0}"
 export WEB_PORT
+export WEB_HOST
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 export PATH="${SCRIPT_DIR}/bin:/opt/homebrew/bin:/usr/local/bin:${PATH}"
@@ -29,4 +31,4 @@ if lsof -nP -iTCP:"${WEB_PORT}" -sTCP:LISTEN >/dev/null 2>&1; then
   lsof -nP -iTCP:"${WEB_PORT}" -sTCP:LISTEN >&2 || true
   exit 1
 fi
-"$PYTHON" -m src
+exec "$PYTHON" -m src

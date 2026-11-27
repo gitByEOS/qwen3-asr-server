@@ -11,8 +11,16 @@ HTML = r"""<!doctype html>
     * { box-sizing: border-box; }
     body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
     .app { max-width: 980px; margin: 0 auto; padding: 24px 18px 48px; }
+    .topbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
     h1 { margin: 0; font-size: 22px; }
     .subtitle { margin-top: 4px; color: var(--muted); font-size: 13px; }
+    .agent-help { position: relative; margin: 5px 8px 0 0; }
+    .agent-help summary { color: var(--muted); cursor: pointer; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; list-style: none; }
+    .agent-help summary::-webkit-details-marker { display: none; }
+    .agent-help[open] summary { color: var(--text); }
+    .agent-card { position: absolute; z-index: 2; top: 28px; right: 0; width: min(620px, calc(100vw - 36px)); padding: 14px; border: 1px solid var(--border); border-radius: 8px; background: #161b22; box-shadow: 0 12px 34px rgba(0, 0, 0, .35); }
+    .agent-card p { margin: 0 0 9px; color: var(--muted); font-size: 12px; }
+    .agent-card pre { margin: 0; overflow: auto; color: var(--text); font-size: 12px; line-height: 1.55; white-space: pre; }
     .warning-bar { display: none; margin: 16px 0 0; padding: 11px 14px; border: 1px solid rgba(245, 158, 11, .18); border-radius: 8px; background: rgba(245, 158, 11, .045); color: #c8bd99; font-size: 13px; }
     .warning-bar.is-on { display: block; }
     .board { display: grid; grid-template-columns: minmax(260px, 320px) minmax(0, 1fr); gap: 14px; margin-top: 20px; }
@@ -43,8 +51,19 @@ HTML = r"""<!doctype html>
 </head>
 <body>
   <div class="app">
-    <h1>离线转写</h1>
-    <div class="subtitle">使用本地 {{model}} 模型，离线完成解析</div>
+    <header class="topbar">
+      <div>
+        <h1>离线转写</h1>
+        <div class="subtitle">使用本地 {{model}} 模型，离线完成解析</div>
+      </div>
+      <details class="agent-help">
+        <summary>[to-agent]</summary>
+        <div class="agent-card">
+          <p>通过 curl 上传音视频，返回 JSON 转写结果：</p>
+          <pre id="agent-curl"></pre>
+        </div>
+      </details>
+    </header>
     <div id="warning" class="warning-bar"></div>
     <div class="board">
       <section class="panel">
@@ -89,10 +108,21 @@ HTML = r"""<!doctype html>
     const copy = document.getElementById("copy");
     const warning = document.getElementById("warning");
     const log = document.getElementById("log");
+    const agentHelp = document.querySelector(".agent-help");
+    const agentCurl = document.getElementById("agent-curl");
     const apiBasePath = window.location.pathname.replace(/\/$/, "");
     const transcribePath = apiBasePath === "" ? "/api/transcribe" : `${apiBasePath}/api/transcribe`;
     const healthPath = apiBasePath === "" ? "/health" : `${apiBasePath}/health`;
     const eventsPath = apiBasePath === "" ? "/api/events" : `${apiBasePath}/api/events`;
+    agentCurl.textContent = `curl -fsS -X POST \\
+  -F "file=@/path/to/audio.mp4" \\
+  -F "language=auto" \\
+  -F "enhance=on" \\
+  "${window.location.origin}${transcribePath}"`;
+
+    document.addEventListener("click", (event) => {
+      if (agentHelp.open && !agentHelp.contains(event.target)) agentHelp.open = false;
+    });
 
     function appendLog(line) {
       if (!line) return;
@@ -192,6 +222,7 @@ HTML = r"""<!doctype html>
       status.textContent = "转码中";
       result.textContent = "等待出字...";
       enhanceState.textContent = "";
+      log.textContent = "";
       appendLog("提交 " + file.name);
       const enhance = enhanceBox.checked ? "on" : "off";
       const body = new FormData();
